@@ -125,17 +125,7 @@ export async function createService(serviceData: Omit<CreateServiceData, 'provid
 // Actualizar un servicio
 export async function updateService(
   serviceId: string,
-  updateData: {
-    title?: string;
-    description?: string;
-    category?: string;
-    min_price?: number;
-    max_price?: number;
-    main_image?: string;
-    gallery?: string[];
-    location?: ServiceLocation;
-    status?: boolean;
-  }
+  updateData: UpdateServiceData
 ) {
   const user = await getCurrentUser();
 
@@ -145,21 +135,21 @@ export async function updateService(
 
   const { location, ...otherData } = updateData;
 
-  // Prepare update object
-  const updateObject: any = {
+  // Prepare update object with proper typing
+  const updateObject: Partial<Service> = {
     ...otherData,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 
   // Add location fields if location is provided
   if (location) {
-    updateObject.latitude = location.latitude;
-    updateObject.longitude = location.longitude;
-    updateObject.address = location.address;
-    updateObject.city = location.city;
-    updateObject.state = location.state;
-    updateObject.country = location.country || 'Colombia';
-    updateObject.postal_code = location.postal_code;
+    updateObject.latitude = location.latitude ?? null;
+    updateObject.longitude = location.longitude ?? null;
+    updateObject.address = location.address ?? null;
+    updateObject.city = location.city ?? null;
+    updateObject.state = location.state ?? null;
+    updateObject.country = location.country ?? 'Colombia';
+    updateObject.postal_code = location.postal_code ?? null;
   }
 
   const { data, error } = await supabase
