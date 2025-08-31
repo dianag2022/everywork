@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EveryWork Marketplace
 
-## Getting Started
+Un marketplace de servicios construido con Next.js y Supabase.
 
-First, run the development server:
+## Características
+
+- 🔐 **Autenticación con Google** usando Supabase Auth
+- 🛡️ **Protección de rutas** con middleware
+- 📱 **Diseño responsive** con Tailwind CSS
+- 🗄️ **Base de datos** con Supabase
+- ⚡ **Rendimiento optimizado** con Next.js 15
+
+## Configuración Rápida
+
+### 1. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 2. Configurar variables de entorno
+
+Crea un archivo `.env.local` con las siguientes variables:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+```
+
+### 3. Configurar autenticación
+
+1. Ve a tu proyecto de Supabase
+2. Habilita Google OAuth en Authentication > Providers
+3. Configura las credenciales de Google OAuth
+4. Configura las URLs de redirección
+
+### 4. Verificar configuración
+
+```bash
+npm run verify-auth
+```
+
+### 5. Ejecutar en desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Estructura del Proyecto
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                    # App Router de Next.js
+│   ├── auth/              # Páginas de autenticación
+│   ├── services/          # Páginas de servicios
+│   └── api/               # API routes
+├── components/            # Componentes React
+│   ├── auth/             # Componentes de autenticación
+│   ├── header/           # Componentes del header
+│   └── services/         # Componentes de servicios
+├── hooks/                # Custom hooks
+├── lib/                  # Utilidades y configuración
+└── types/                # Tipos de TypeScript
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Autenticación
 
-## Learn More
+El proyecto usa **Supabase Auth** para la autenticación con las siguientes características:
 
-To learn more about Next.js, take a look at the following resources:
+- ✅ Login con Google OAuth
+- ✅ Protección de rutas automática
+- ✅ Middleware para rutas protegidas
+- ✅ Estado de autenticación global
+- ✅ Redirección automática
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Rutas Protegidas
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/dashboard/*`
+- `/profile/*`
+- `/services/new`
 
-## Deploy on Vercel
+### Uso en Componentes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```tsx
+import { useAuth } from '@/hooks/useAuth';
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+export default function MyComponent() {
+  const { user, signIn, signOut, isAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return (
+      <div>
+        <p>Hola, {user?.user_metadata?.full_name}</p>
+        <button onClick={() => signOut()}>Cerrar Sesión</button>
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={() => signIn('google')}>
+      Iniciar Sesión con Google
+    </button>
+  );
+}
+```
+
+## Scripts Disponibles
+
+- `npm run dev` - Servidor de desarrollo
+- `npm run build` - Construir para producción
+- `npm run start` - Servidor de producción
+- `npm run lint` - Linting del código
+- `npm run verify-auth` - Verificar configuración de autenticación
+
+## Documentación
+
+Para más detalles sobre la configuración de autenticación, consulta [AUTH_SETUP.md](./AUTH_SETUP.md).
+
+## Tecnologías
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Estilos**: Tailwind CSS
+- **Autenticación**: Supabase Auth
+- **Base de datos**: Supabase (PostgreSQL)
+- **Deployment**: Vercel (recomendado)
+
+## Contribuir
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request

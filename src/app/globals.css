@@ -24,3 +24,105 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ocultar scrollbar pero mantener funcionalidad */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Colores base */
+.bg-primary { background-color: rgb(211,242,106); }
+.bg-dark { background-color: black; }
+.text-primary { color: rgb(211,242,106); }
+.text-dark { color: black; }
+
+/* Colores principales */
+.bg-main-black { background: #111; }
+.text-main-black { color: #111; }
+.bg-main-green { background: rgb(211,242,106);}
+.text-main-green { color: rgb(211,242,106); }
+.bg-main-purple { background: #b7aaff; } /* Ajusta el violeta según la imagen */
+.text-main-purple { color: #b7aaff; }
+
+/* Contenedor reutilizable */
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Títulos */
+.heading {
+  font-size: 3rem;
+  font-weight: bold;
+  line-height: 1.1;
+}
+.subheading {
+  font-size: 1.25rem;
+}
+
+/* Botón principal reutilizable */
+.btn-primary {
+  background-color: black;
+  color: rgb(211,242,106);
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background-color: #222;
+}
+
+.search-input {
+  width: 400px;
+  padding: 0.75rem 1rem;
+  border-radius: 2rem;
+  border: none;
+  font-size: 1rem;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.search-btn {
+  background: rgb(211,242,106);
+  color: #111;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.search-btn:hover {
+  background: #c2e86b;
+}
+.show-all-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  margin-top: 1rem;
+}
