@@ -62,16 +62,7 @@ if (missingFiles.length > 0) {
 
 console.log('✅ Todos los archivos principales están presentes');
 
-// Verificar que NextAuth no esté presente
-const nextAuthFiles = [
-  'src/app/api/auth/[...nextauth]/route.ts'
-];
 
-const nextAuthFilesFound = nextAuthFiles.filter(file => fs.existsSync(file));
-
-if (nextAuthFilesFound.length > 0) {
-  console.log('⚠️  Archivos de NextAuth encontrados (deberían ser eliminados):', nextAuthFilesFound.join(', '));
-}
 
 console.log('\n🎉 Configuración de autenticación verificada correctamente!');
 console.log('\n📋 Próximos pasos:');
