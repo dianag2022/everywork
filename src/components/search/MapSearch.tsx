@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Loader2, AlertCircle, Star, DollarSign } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Service } from '@/types/database';
+import { Service, ServiceWithProvider } from '@/types/database';
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet';
 
@@ -46,9 +46,9 @@ interface UserLocation {
 
 
 interface MapSearchProps {
-  services?: Service[]
-  selectedService?: Service | null
-  onServiceSelect?: (service: Service) => void
+  services?: ServiceWithProvider[]
+  selectedService?: ServiceWithProvider | null
+  onServiceSelect?: (service: ServiceWithProvider) => void
 }
 
 export default function MapSearch({ services = [], selectedService, onServiceSelect }: MapSearchProps) {
@@ -136,7 +136,7 @@ export default function MapSearch({ services = [], selectedService, onServiceSel
     }
   }
 
-  const handleServiceClick = (service: Service) => {
+  const handleServiceClick = (service: ServiceWithProvider) => {
     if (onServiceSelect) {
       onServiceSelect(service)
     }
@@ -286,12 +286,12 @@ export default function MapSearch({ services = [], selectedService, onServiceSel
                     </div>
                     
                     {/* Distance */}
-                    {service.distance !== undefined && (
+                    {/* {service.distance !== undefined && (
                       <div className="flex items-center text-gray-600">
                         <MapPin className="w-3 h-3 mr-1" />
                         <span className="text-xs">{formatDistance(service.distance)}</span>
                       </div>
-                    )}
+                    )} */}
                     
                     {/* Address */}
                     {service.address && (
@@ -301,9 +301,9 @@ export default function MapSearch({ services = [], selectedService, onServiceSel
                     )}
                     
                     {/* Provider Info */}
-                    {service.provider && service.provider.raw_user_meta_data?.name && (
+                    {service.provider && service.provider.raw_user_meta_data?.nombre && (
                       <p className="text-xs text-gray-600">
-                        Por: {service.provider.raw_user_meta_data.name}
+                        Por: {service.provider.raw_user_meta_data.nombre}
                       </p>
                     )}
                     

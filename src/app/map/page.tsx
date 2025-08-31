@@ -7,13 +7,14 @@ import { useCategories } from '@/hooks/useCategories'
 import Link from 'next/link'
 import { Search, MapPin, Star, Clock, Loader2, AlertCircle } from 'lucide-react'
 import MapSearch from '@/components/search/MapSearch';
+import { Service } from '@/types/database';
 
 export default function MapPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const query = searchParams.get('query') || ''
     const categoryParam = searchParams.get('category') || ''
-    const [services, setServices] = useState([])
+    const [services, setServices] = useState<Service[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState(categoryParam)
     const [searchQuery, setSearchQuery] = useState(query)
@@ -77,7 +78,7 @@ export default function MapPage() {
         async function fetchResults() {
             setLoading(true)
             try {
-                const results = await searchServices(
+                const results: Service[] = await searchServices(
                     searchQuery, 
                     category, 
                     userLocation || undefined, // Pass user location if available
@@ -235,13 +236,13 @@ export default function MapPage() {
                                                 <div className="flex items-center text-sm text-gray-600 mt-1">
                                                     <Star className="w-3 h-3 text-yellow-400 mr-1" />
                                                     <span>4.9 (123 reviews)</span>
-                                                    {service.distance !== undefined && (
+                                                    {/* {service.distance !== undefined && (
                                                         <>
                                                             <span className="mx-2">•</span>
                                                             <MapPin className="w-3 h-3 mr-1" />
                                                             <span>{formatDistance(service.distance)}</span>
                                                         </>
-                                                    )}
+                                                    )} */}
                                                 </div>
                                                 <p className="text-sm text-gray-600 mt-1 truncate">
                                                     {service.description}

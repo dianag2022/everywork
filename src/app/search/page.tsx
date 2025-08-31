@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { ServiceCard } from '@/components/services/ServiceCard'
 import { useCategories } from '@/hooks/useCategories' // adjust path as needed
 import SearchBar from '@/components/search/SearchBar'
+import { ServiceWithProvider, Service } from '@/types/database';
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
@@ -13,7 +14,7 @@ export default function SearchPage() {
   const query = searchParams.get('query') || ''
   const categoryParam = searchParams.get('category') || ''
 
-  const [services, setServices] = useState([])
+  const [services, setServices] = useState<ServiceWithProvider[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState(categoryParam)
 

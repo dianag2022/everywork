@@ -67,10 +67,10 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
             latitude: serviceData.latitude,
             longitude: serviceData.longitude,
             address: serviceData.address || `${serviceData.latitude}, ${serviceData.longitude}`,
-            city: serviceData.city,
-            state: serviceData.state,
-            country: serviceData.country,
-            postal_code: serviceData.postal_code
+            city: serviceData.city || undefined,
+            state: serviceData.state || undefined,
+            country: serviceData.country || undefined,
+            postal_code: serviceData.postal_code || undefined
           })
         }
         
@@ -213,14 +213,15 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         category,
         main_image: finalImageUrls[mainImageIndex], // Set the main image
         gallery: finalImageUrls, // Store as JSONB array
-        // Location fields
-        latitude: location.latitude,
-        longitude: location.longitude,
-        address: location.address,
-        city: location.city,
-        state: location.state,
-        country: location.country,
-        postal_code: location.postal_code,
+        location: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: location.address,
+          city: location.city,
+          state: location.state,
+          country: location.country,
+          postal_code: location.postal_code,
+        }
       })
       
       router.push('/dashboard')

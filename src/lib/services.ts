@@ -240,7 +240,7 @@ export async function searchServices(
   category: string = '',
   userLocation?: { lat: number; lng: number },
   radiusKm: number = 50
-): Promise<Service[]> {
+): Promise<ServiceWithProvider[]> {
   try {
     let supabaseQuery = supabase
       .from('services')
@@ -294,7 +294,7 @@ export async function searchServices(
         .sort((a, b) => (a.distance || 0) - (b.distance || 0));
     }
 
-    return results;
+    return results as ServiceWithProvider[];
   } catch (error) {
     console.error('Error searching services:', error);
     throw error;
