@@ -1,11 +1,10 @@
 "use server";
 
 import { supabase } from './supabase/client'
-import { Service, CreateServiceData, UpdateServiceData, ServiceWithProvider } from '@/types/database'
+import { Service, CreateServiceData, UpdateServiceData, Category, ServiceWithProvider } from '@/types/database'
 import { getCurrentUser } from '@/auth'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { Category } from '@/types/database';
 
 // Obtener todos los servicios activos con información del proveedor
 export async function getActiveServices() {
@@ -23,7 +22,7 @@ export async function getActiveServices() {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as (Service & { provider: any })[]
+  return data as ServiceWithProvider[]
 }
 
 // Obtener servicios por proveedor
