@@ -1,9 +1,9 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, Loader2, AlertCircle, Star, DollarSign } from 'lucide-react';
+import { Search, MapPin, Loader2, AlertCircle,  DollarSign } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Service, ServiceWithProvider } from '@/types/database';
+import {  ServiceWithProvider } from '@/types/database';
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet';
 

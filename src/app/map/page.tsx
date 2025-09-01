@@ -2,12 +2,10 @@
 import { useState, useEffect } from 'react'
 import { searchServices } from '@/lib/services'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ServiceCard } from '@/components/services/ServiceCard'
-import { useCategories } from '@/hooks/useCategories'
 import Link from 'next/link'
 import { Search, MapPin, Star, Clock, Loader2, AlertCircle } from 'lucide-react'
 import MapSearch from '@/components/search/MapSearch';
-import { Service,ServiceWithProvider } from '@/types/database';
+import { ServiceWithProvider } from '@/types/database';
 
 export default function MapPage() {
     const searchParams = useSearchParams()
@@ -21,7 +19,6 @@ export default function MapPage() {
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
     const [locationLoading, setLocationLoading] = useState(true)
     const [locationError, setLocationError] = useState<string | null>(null)
-    const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
     
     // Category buttons for quick filtering
     const quickCategories = [

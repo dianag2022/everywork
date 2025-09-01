@@ -13,7 +13,7 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, onFavorite, isFavorite = false }: ServiceCardProps) {
-  const providerName = service.provider.raw_user_meta_data?.nombre || 'Proveedor'
+  const providerName = 'Proveedor';
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
