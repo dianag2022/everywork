@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+
 
 export default function SignInPage() {
   const { signIn, user, loading, session } = useAuth();
@@ -74,6 +75,7 @@ export default function SignInPage() {
   }
 
   return (
+    <Suspense>
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
@@ -129,5 +131,6 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+    </Suspense>
   );
 }
