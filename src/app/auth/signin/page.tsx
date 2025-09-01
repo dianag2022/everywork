@@ -4,8 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 
-
-export default function SignInPage() {
+// Separate the component that uses useSearchParams
+function SignInContent() {
   const { signIn, user, loading, session } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,7 +75,6 @@ export default function SignInPage() {
   }
 
   return (
-    <Suspense>
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
@@ -131,6 +130,26 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function SignInLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Cargando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInLoading />}>
+      <SignInContent />
     </Suspense>
   );
 }
