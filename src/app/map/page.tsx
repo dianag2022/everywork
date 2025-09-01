@@ -1,12 +1,26 @@
 'use client'
 
+
 import { useState, useEffect, Suspense } from 'react'
 import { searchServices } from '@/lib/services'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, MapPin, Star, Clock, Loader2, AlertCircle } from 'lucide-react'
-import MapSearch from '@/components/search/MapSearch';
+import dynamic from 'next/dynamic'
 import { ServiceWithProvider } from '@/types/database';
+
+// Dynamically import MapSearch with no SSR to prevent window errors
+const MapSearch = dynamic(() => import('@/components/search/MapSearch'), {
+    ssr: false,
+    loading: () => (
+        <div className="flex-1 bg-gray-100 flex items-center justify-center">
+            <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando mapa...</p>
+            </div>
+        </div>
+    )
+})
 
 // Separate component that uses useSearchParams
 function MapContent() {
