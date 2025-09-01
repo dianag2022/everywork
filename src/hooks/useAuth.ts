@@ -51,29 +51,33 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
 
-  const signIn = async (provider: 'google' | 'github' | 'email' = 'google', callbackUrl?: string) => {
+  const signIn = async (
+    provider: 'google' | 'github' | 'email' = 'google',
+    callbackUrl?: string
+  ) => {
     if (provider === 'email') {
       throw new Error('Email sign in not implemented yet');
     }
-
-    const redirectTo = callbackUrl 
-      ? `${window.location.origin}/auth/callback?callbackUrl=${encodeURIComponent(callbackUrl)}`
-      : `${window.location.origin}/auth/callback`;
-
+  
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+  
+    const redirectTo = callbackUrl
+      ? `${baseUrl}/auth/callback?callbackUrl=${encodeURIComponent(callbackUrl)}`
+      : `${baseUrl}/auth/callback`;
+  
     console.log('useAuth: Starting OAuth signin with redirectTo:', redirectTo);
-
+  
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: {
-        redirectTo
-      }
+      options: { redirectTo }
     });
-
+  
     if (error) {
       console.error('useAuth: OAuth signin error:', error);
       throw error;
     }
   };
+  
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
