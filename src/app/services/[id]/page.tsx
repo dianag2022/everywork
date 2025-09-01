@@ -31,17 +31,17 @@ export default async function ServiceDetail({ params }: { params: { id: string }
           <p className="text-gray-700 mb-6">{service.description}</p>
           <div className="mb-6">
             <h2 className="text-lg font-semibold mb-1">Acerca del perfil</h2>
-            <p className="text-gray-600">{service.provider?.raw_user_meta_data?.bio || 'Sin descripción.'}</p>
+            {/* <p className="text-gray-600">{service.provider?.raw_user_meta_data?.bio || 'Sin descripción.'}</p> */}
           </div>
           <div className="flex items-center gap-2 mb-6">
             {/* Estrellas */}
-            <div className="flex gap-1">
+            {/* <div className="flex gap-1">
               {[...Array(5)].map((_, i) => (
                 <span key={i} className={i < Math.round(service.rating) ? 'text-yellow-400' : 'text-gray-300'}>★</span>
               ))}
-            </div>
-            <span className="text-gray-700 font-medium">{service.rating || '0.0'}</span>
-            <span className="text-gray-500 text-sm">{service.reviews || 0} valoraciones</span>
+            </div> */}
+            {/* <span className="text-gray-700 font-medium">{service.rating || '0.0'}</span>
+            <span className="text-gray-500 text-sm">{service.reviews || 0} valoraciones</span> */}
           </div>
           <button className="bg-green-400 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-green-500 transition">
             Enviar mensaje
@@ -49,7 +49,7 @@ export default async function ServiceDetail({ params }: { params: { id: string }
           </button>
         </div>
         {/* Perfil del proveedor */}
-        <div className="flex flex-col items-center mt-8">
+        {/* <div className="flex flex-col items-center mt-8">
           <Image
             src={service.provider?.raw_user_meta_data?.avatar_url || '/default-avatar.png'}
             alt={service.provider?.email}
@@ -63,7 +63,7 @@ export default async function ServiceDetail({ params }: { params: { id: string }
               ? new Date(service.provider.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
               : 'Fecha desconocida'}
           </span>
-        </div>
+        </div> */}
       </div>
     </main>
   )

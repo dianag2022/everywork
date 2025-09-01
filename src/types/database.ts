@@ -37,9 +37,10 @@ export interface ServiceWithProvider extends Service {
     id: string
     email: string
     raw_user_meta_data: {
-      nombre?: string
-      profesion?: string
-      ubicacion?: string
+      sub: string 
+      "email": string 
+      "email_verified": boolean
+      "phone_verified": boolean
     }
   }
 }
