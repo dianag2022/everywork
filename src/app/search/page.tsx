@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { searchServices } from '@/lib/services'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ServiceCard } from '@/components/services/ServiceCard'
-import { useCategories } from '@/hooks/useCategories' // adjust path as needed
+import { useCategories } from '@/hooks/useCategories'
 import SearchBar from '@/components/search/SearchBar'
 import { ServiceWithProvider } from '@/types/database';
 
-export default function SearchPage() {
+// Separate component that uses useSearchParams
+function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get('query') || ''
@@ -117,5 +118,30 @@ export default function SearchPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+// Loading fallback component
+function SearchLoading() {
+  return (
+    <main className="bg-white min-h-screen">
+      <div className="container py-8">
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando página de búsqueda...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+// Main component with Suspense boundary
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchLoading />}>
+      <SearchContent />
+    </Suspense>
   )
 }

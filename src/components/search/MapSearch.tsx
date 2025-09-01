@@ -1,4 +1,4 @@
-"use client"
+'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Loader2, AlertCircle,  DollarSign } from 'lucide-react';
@@ -10,19 +10,15 @@ import L from 'leaflet';
 // Corrige el icono de Leaflet
 const serviceIcon = L.icon({
   iconUrl: "/marker-icon.png",
-  shadowUrl: "/marker-shadow.png",
+  shadowUrl: "/marker-icon.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41]
 })
 
 // Icono para la ubicación del usuario
 const userLocationIcon = L.icon({
-  iconUrl: "data:image/svg+xml;base64," + btoa(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10" fill="#3B82F6" fill-opacity="0.2"/>
-      <circle cx="12" cy="12" r="3" fill="#3B82F6"/>
-    </svg>
-  `),
+  iconUrl: "/marker-icon.png",
+  shadowUrl: "/marker-icon.png",
   iconSize: [24, 24],
   iconAnchor: [12, 12]
 })
