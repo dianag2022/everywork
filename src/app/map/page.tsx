@@ -7,14 +7,14 @@ import { useCategories } from '@/hooks/useCategories'
 import Link from 'next/link'
 import { Search, MapPin, Star, Clock, Loader2, AlertCircle } from 'lucide-react'
 import MapSearch from '@/components/search/MapSearch';
-import { Service } from '@/types/database';
+import { Service,ServiceWithProvider } from '@/types/database';
 
 export default function MapPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const query = searchParams.get('query') || ''
     const categoryParam = searchParams.get('category') || ''
-    const [services, setServices] = useState<Service[]>([])
+    const [services, setServices] = useState<ServiceWithProvider[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState(categoryParam)
     const [searchQuery, setSearchQuery] = useState(query)
@@ -78,7 +78,7 @@ export default function MapPage() {
         async function fetchResults() {
             setLoading(true)
             try {
-                const results: Service[] = await searchServices(
+                const results: ServiceWithProvider[] = await searchServices(
                     searchQuery, 
                     category, 
                     userLocation || undefined, // Pass user location if available
