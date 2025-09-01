@@ -294,18 +294,18 @@ export default function MapSearch({ services = [], selectedService, onServiceSel
                     )} */}
                     
                     {/* Address */}
-                    {service.address && (
+                    {/* {service.address && (
                       <p className="text-xs text-gray-500 truncate">
                         📍 {service.city || service.address}
                       </p>
-                    )}
+                    )} */}
                     
                     {/* Provider Info */}
-                    {service.provider && service.provider.raw_user_meta_data?.nombre && (
+                    {/* {service.provider && service.provider.raw_user_meta_data?.nombre && (
                       <p className="text-xs text-gray-600">
                         Por: {service.provider.raw_user_meta_data.nombre}
                       </p>
-                    )}
+                    )} */}
                     
                     {/* Action Button */}
                     <button
