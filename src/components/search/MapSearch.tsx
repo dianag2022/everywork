@@ -6,6 +6,61 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import {  ServiceWithProvider } from '@/types/database';
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet';
+import { useMapEvents } from 'react-leaflet'
+
+interface MapSearchProps {
+  services: ServiceWithProvider[]
+  selectedService: ServiceWithProvider | null
+  onServiceSelect: (service: ServiceWithProvider) => void
+  onZoomChange?: (zoomLevel: number) => void // New prop
+}
+
+// Component to handle map events
+function MapEventHandler({ onZoomChange }: { onZoomChange?: (zoom: number, bounds?: { lat: number; lng: number }[]) => void }) {
+  const map = useMapEvents({
+    zoomend: () => {
+      const zoomLevel = map.getZoom()
+      const mapBounds = map.getBounds()
+      const boundsArray = [
+        { lat: mapBounds.getNorthEast().lat, lng: mapBounds.getNorthEast().lng },
+        { lat: mapBounds.getNorthWest().lat, lng: mapBounds.getNorthWest().lng },
+        { lat: mapBounds.getSouthEast().lat, lng: mapBounds.getSouthEast().lng },
+        { lat: mapBounds.getSouthWest().lat, lng: mapBounds.getSouthWest().lng }
+      ]
+      if (onZoomChange) {
+        onZoomChange(zoomLevel, boundsArray)
+      }
+    },
+    moveend: () => {
+      // Also trigger when map is panned
+      const zoomLevel = map.getZoom()
+      const mapBounds = map.getBounds()
+      const boundsArray = [
+        { lat: mapBounds.getNorthEast().lat, lng: mapBounds.getNorthEast().lng },
+        { lat: mapBounds.getNorthWest().lat, lng: mapBounds.getNorthWest().lng },
+        { lat: mapBounds.getSouthEast().lat, lng: mapBounds.getSouthEast().lng },
+        { lat: mapBounds.getSouthWest().lat, lng: mapBounds.getSouthWest().lng }
+      ]
+      if (onZoomChange) {
+        onZoomChange(zoomLevel, boundsArray)
+      }
+    }
+  })
+  
+  return null
+}
+
+// Alternative: Add a reset button to clear the maximum radius
+function ResetSearchButton({ onReset }: { onReset: () => void }) {
+  return (
+    <button 
+      onClick={onReset}
+      className="text-xs text-blue-600 hover:text-blue-800"
+    >
+      Reset search area
+    </button>
+  )
+}
 
 // Corrige el icono de Leaflet
 const serviceIcon = L.icon({
@@ -40,14 +95,7 @@ interface UserLocation {
 }
 
 
-
-interface MapSearchProps {
-  services?: ServiceWithProvider[]
-  selectedService?: ServiceWithProvider | null
-  onServiceSelect?: (service: ServiceWithProvider) => void
-}
-
-export default function MapSearch({ services = [], selectedService, onServiceSelect }: MapSearchProps) {
+export default function MapSearch({ services, selectedService, onServiceSelect, onZoomChange }: MapSearchProps) {
   const [query, setQuery] = useState('')
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
@@ -86,7 +134,7 @@ export default function MapSearch({ services = [], selectedService, onServiceSel
         setMapCenter([latitude, longitude])
         setLocationLoading(false)
         
-        console.log('User location:', newLocation)
+        // console.log('User location:', newLocation)
       },
       (error) => {
         let errorMessage = 'Error al obtener ubicación'
@@ -208,6 +256,7 @@ export default function MapSearch({ services = [], selectedService, onServiceSel
         className="absolute inset-0 w-full h-full z-0"
         ref={mapRef}
       >
+        <MapEventHandler onZoomChange={onZoomChange} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

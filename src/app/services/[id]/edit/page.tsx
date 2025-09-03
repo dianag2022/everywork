@@ -170,7 +170,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         user!.id, 
         (progress) => {
           // Optional: You could add a progress state here if needed
-          console.log(`Upload progress: ${progress}%`)
+          // console.log(`Upload progress: ${progress}%`)
         }
       )
 
@@ -367,7 +367,7 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
               </div>
               <input
                 type="number"
-                id="maxPrice"
+                id="max_price"
                 value={max_price}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 min="0"

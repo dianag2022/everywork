@@ -1,7 +1,6 @@
 'use client'
 
-
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { searchServices } from '@/lib/services'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -22,6 +21,37 @@ const MapSearch = dynamic(() => import('@/components/search/MapSearch'), {
     )
 })
 
+// Function to calculate search radius based on zoom level
+const calculateRadiusFromZoom = (zoomLevel: number, mapBounds?: { lat: number; lng: number }[], userLocation?: { lat: number; lng: number }): number => {
+    // Strategy 1: Use map bounds to calculate radius
+    if (mapBounds && mapBounds.length >= 2 && userLocation) {
+        // Calculate the distance from user location to the farthest corner of the visible map
+        const distances = mapBounds.map(point => {
+            const R = 6371 // Earth's radius in km
+            const dLat = (point.lat - userLocation.lat) * Math.PI / 180
+            const dLng = (point.lng - userLocation.lng) * Math.PI / 180
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(point.lat * Math.PI / 180) *
+                     Math.sin(dLng/2) * Math.sin(dLng/2)
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+            return R * c
+        })
+        // Use the maximum distance plus a buffer (e.g., 20%)
+        const maxDistance = Math.max(...distances)
+        return Math.max(10, Math.ceil(maxDistance * 1.2)) // At least 10km, with 20% buffer
+    }
+    
+    // Strategy 2 (fallback): Progressive radius that doesn't shrink too much
+    // Instead of drastically reducing radius when zooming in, maintain a reasonable minimum
+    if (zoomLevel >= 15) return 25    // Street level - but keep 25km minimum
+    if (zoomLevel >= 13) return 50    // City level - 50km
+    if (zoomLevel >= 11) return 100   // Metro area - 100km
+    if (zoomLevel >= 9) return 200    // Regional - 200km
+    if (zoomLevel >= 7) return 400    // State/Province - 400km
+    if (zoomLevel >= 5) return 800    // Country - 800km
+    return 1500                       // Continental - 1500km
+}
+
 // Separate component that uses useSearchParams
 function MapContent() {
     const searchParams = useSearchParams()
@@ -36,14 +66,32 @@ function MapContent() {
     const [locationLoading, setLocationLoading] = useState(true)
     const [locationError, setLocationError] = useState<string | null>(null)
     
-    // Category buttons for quick filtering
-    const quickCategories = [
-        { value: '', label: 'All' },
-        { value: 'Home', label: 'Home' },
-        { value: 'Tutoring', label: 'Tutoring' },
-        { value: 'Design', label: 'Design' },
-        { value: 'Wellness', label: 'Wellness' }
-    ]
+    // New state for zoom level and radius
+    const [currentZoom, setCurrentZoom] = useState(13) // Default zoom level
+    const [searchRadius, setSearchRadius] = useState(50) // Default 50km radius
+    const [mapBounds, setMapBounds] = useState<{ lat: number; lng: number }[] | null>(null)
+    const [maxRadiusReached, setMaxRadiusReached] = useState(50) // Track the maximum radius used
+    
+    // Callback to handle zoom changes from MapSearch component
+    const handleZoomChange = useCallback((zoomLevel: number, bounds?: { lat: number; lng: number }[]) => {
+        setCurrentZoom(zoomLevel)
+        if (bounds) {
+            setMapBounds(bounds)
+        }
+        
+        const newRadius = calculateRadiusFromZoom(zoomLevel, bounds, userLocation || undefined)
+        
+        // Strategy 3: Never shrink the radius below what we've already searched
+        // This ensures that once a service is visible, it stays visible when zooming in
+        const finalRadius = Math.max(newRadius, maxRadiusReached)
+        
+        setSearchRadius(finalRadius)
+        if (finalRadius > maxRadiusReached) {
+            setMaxRadiusReached(finalRadius)
+        }
+        
+        // console.log(`Zoom level: ${zoomLevel}, Calculated radius: ${newRadius}km, Final radius: ${finalRadius}km`)
+    }, [userLocation, maxRadiusReached])
 
     // Get user's current location
     useEffect(() => {
@@ -59,7 +107,7 @@ function MapContent() {
                     const { latitude, longitude } = position.coords
                     setUserLocation({ lat: latitude, lng: longitude })
                     setLocationLoading(false)
-                    console.log('User location:', { lat: latitude, lng: longitude })
+                    // console.log('User location:', { lat: latitude, lng: longitude })
                 },
                 (error) => {
                     console.error('Error getting location:', error)
@@ -86,7 +134,7 @@ function MapContent() {
         setSearchQuery(query)
     }, [query])
 
-    // Fetch services with location filtering
+    // Fetch services with dynamic location filtering based on zoom
     useEffect(() => {
         async function fetchResults() {
             setLoading(true)
@@ -94,10 +142,10 @@ function MapContent() {
                 const results: ServiceWithProvider[] = await searchServices(
                     searchQuery, 
                     category, 
-                    userLocation || undefined, // Pass user location if available
-                    50 // 50km radius
+                    userLocation || undefined, 
+                    searchRadius // Use dynamic radius based on zoom
                 )
-                console.log('results with location:', results)
+                // console.log(`Results with ${searchRadius}km radius:`, results)
                 setServices(results)
             } catch (error) {
                 console.error('Error fetching search results:', error)
@@ -111,7 +159,7 @@ function MapContent() {
         if (!locationLoading) {
             fetchResults()
         }
-    }, [searchQuery, category, userLocation, locationLoading])
+    }, [searchQuery, category, userLocation, locationLoading, searchRadius])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -161,7 +209,7 @@ function MapContent() {
                     <div className="p-3 bg-green-50 border-b border-green-200 flex items-center">
                         <MapPin className="w-4 h-4 text-green-600 mr-2" />
                         <span className="text-sm text-green-700">
-                            Showing services within 50km of your location
+                            Mostrando servicios dentro de los {searchRadius}km de tu ubicación
                         </span>
                     </div>
                 )}
@@ -174,36 +222,24 @@ function MapContent() {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search for services"
+                            placeholder="Buscar servicios"
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         />
                     </form>
                 </div>
 
-                {/* Category Filter Buttons */}
-                <div className="p-4 border-b border-gray-200">
-                    <div className="flex flex-wrap gap-2">
-                        {quickCategories.map((cat) => (
-                            <button
-                                key={cat.value}
-                                onClick={() => handleCategoryChange(cat.value)}
-                                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${category === cat.value
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
 
                 {/* Services List */}
                 <div className="flex-1 overflow-y-auto">
                     <div className="p-4">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                            {userLocation ? 'Services near you' : 'All services'}
+                        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                            {userLocation ? 'Servicios cerca de tu ubicación' : 'Todos los servicios'}
                         </h2>
+                        {userLocation && (
+                            <p className="text-sm text-gray-600 mb-4">
+                               Radio: {searchRadius}km • Max: {maxRadiusReached}km • {services.length} resultados
+                            </p>
+                        )}
                         {loading ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 4 }).map((_, index) => (
@@ -249,13 +285,13 @@ function MapContent() {
                                                 <div className="flex items-center text-sm text-gray-600 mt-1">
                                                     <Star className="w-3 h-3 text-yellow-400 mr-1" />
                                                     <span>4.9 (123 reviews)</span>
-                                                    {/* {service.distance !== undefined && (
+                                                    {service.distance !== undefined && (
                                                         <>
                                                             <span className="mx-2">•</span>
                                                             <MapPin className="w-3 h-3 mr-1" />
                                                             <span>{formatDistance(service.distance)}</span>
                                                         </>
-                                                    )} */}
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-gray-600 mt-1 truncate">
                                                     {service.description}
@@ -283,13 +319,13 @@ function MapContent() {
                                 <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                                 <p className="text-gray-600 mb-2">
                                     {userLocation 
-                                        ? 'No services found near your location.'
+                                        ? `No services found within ${searchRadius}km of your location.`
                                         : 'No services found matching your search.'
                                     }
                                 </p>
                                 {userLocation && (
                                     <p className="text-sm text-gray-500">
-                                        Try expanding your search radius or changing categories.
+                                        Try zooming out on the map to expand your search area.
                                     </p>
                                 )}
                             </div>
@@ -301,9 +337,9 @@ function MapContent() {
                 services={services} 
                 selectedService={null}
                 onServiceSelect={(service) => {
-                    // Optional: You can add logic here to highlight the selected service in the sidebar
-                    console.log('Selected service:', service)
+                    // console.log('Selected service:', service)
                 }}
+                onZoomChange={handleZoomChange} // Pass the zoom change handler
             />
         </div>
     )

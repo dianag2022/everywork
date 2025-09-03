@@ -81,7 +81,6 @@ export function LocationInput({ value, onChange, required = false }: LocationInp
 
     try {
       const locationData = await geocodeAddress(address.trim());
-      console.log("location selected", locationData);
       
       onChange(locationData)
     } catch (error) {

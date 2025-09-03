@@ -5,7 +5,7 @@ export const metadata = {
 };
 
 export default async function NewServicePage() {
-  console.log('=== SERVICES/NEW PAGE COMPONENT RENDERING ===');
+  // console.log('=== SERVICES/NEW PAGE COMPONENT RENDERING ===');
 
 
   return (

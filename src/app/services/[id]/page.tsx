@@ -5,7 +5,6 @@ import type { ServiceWithProvider } from '@/types/database'
 
 export default async function ServiceDetail({ params }: { params: { id: string } }) {
     const service: ServiceWithProvider = await getServiceById(params.id);
-    console.log(service);
     
 
   return (

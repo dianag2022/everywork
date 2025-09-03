@@ -81,8 +81,8 @@ export function ServiceCard({ service, onFavorite, isFavorite = false }: Service
             </span>
             <div className="flex items-center gap-1">
               <StarIcon className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm font-medium">4.9</span>
-              <span className="text-sm text-gray-500">(24)</span>
+              <span className="text-sm font-medium">4.8</span>
+              <span className="text-sm text-gray-500">(1)</span>
             </div>
           </div>
 
