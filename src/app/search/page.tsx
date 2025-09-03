@@ -201,7 +201,7 @@ function SearchContent() {
               }
             `}>
               {services.map(service => (
-                <ServiceCard key={service.id} service={service} viewMode={viewMode} />
+                <ServiceCard key={service.id} service={service} />
               ))}
             </div>
           ) : (
