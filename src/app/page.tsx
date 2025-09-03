@@ -153,12 +153,7 @@ export default function Home() {
                 />
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-400/20 to-purple-400/20 group-hover:from-blue-400/30 group-hover:to-purple-400/30 transition-all duration-200"></div>
               </div>
-              <div className="ml-3 hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-800 group-hover:text-blue-700 transition-colors duration-200">
-                  EveryWork
-                </h1>
-                <p className="text-xs text-gray-500 -mt-1">Tu trabajo, nuestra pasión</p>
-              </div>
+              
             </Link>
               </div>
               <span className="ml-3 text-2xl font-bold text-gray-800">everywork</span>
