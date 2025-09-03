@@ -282,7 +282,7 @@ function MapContent() {
                                                 <h3 className="font-medium text-gray-900 truncate">
                                                     {service.title}
                                                 </h3>
-                                                <div className="flex items-center text-sm text-gray-600 mt-1">
+                                                {/* <div className="flex items-center text-sm text-gray-600 mt-1">
                                                     <Star className="w-3 h-3 text-yellow-400 mr-1" />
                                                     <span>4.9 (123 reviews)</span>
                                                     {service.distance !== undefined && (
@@ -292,7 +292,7 @@ function MapContent() {
                                                             <span>{formatDistance(service.distance)}</span>
                                                         </>
                                                     )}
-                                                </div>
+                                                </div> */}
                                                 <p className="text-sm text-gray-600 mt-1 truncate">
                                                     {service.description}
                                                 </p>
