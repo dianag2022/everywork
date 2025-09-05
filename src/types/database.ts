@@ -27,6 +27,7 @@ export interface Service {
   state: string | null
   country: string | null
   postal_code: string | null
+  phone_number: string | null
 
   created_at: string
   updated_at: string
@@ -56,6 +57,7 @@ export interface CreateServiceData {
   provider_id: string
   status?: boolean
   location?: ServiceLocation
+  phone_number?: string
 }
 
 export interface UpdateServiceData {
@@ -68,6 +70,7 @@ export interface UpdateServiceData {
   status?: boolean
   category?: string
   location?: ServiceLocation
+  phone_number?: string
 }
 
 export interface Category {

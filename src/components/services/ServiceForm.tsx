@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createService } from '@/lib/services';
 import { uploadServiceImages } from '@/lib/storage';
-import { X, Upload, Image as ImageIcon, Star } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Star, Phone, MapPin, DollarSign, Tag, FileText, Camera } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { LocationInput } from '@/components/forms/LocationInput';
 import { ServiceLocation } from '@/types/database';
@@ -23,6 +23,7 @@ export default function ServiceForm() {
   const [price, setPrice] = useState('');
   const [max_price, setMaxPrice] = useState('');
   const [category, setCategory] = useState('');
+  const [phone_number, setPhoneNumber] = useState(''); // NEW FIELD
 
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
 
@@ -100,6 +101,12 @@ export default function ServiceForm() {
     setMainImageIndex(index);
   };
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Colombian phone number validation (flexible format)
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{7,20}$/;
+    return phoneRegex.test(phone);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -115,6 +122,12 @@ export default function ServiceForm() {
 
     if (!location) {
       setError('Debes seleccionar una ubicación para tu servicio');
+      return;
+    }
+
+    // Validate phone number if provided
+    if (phone_number && !validatePhoneNumber(phone_number)) {
+      setError('El formato del número de teléfono no es válido');
       return;
     }
 
@@ -141,6 +154,7 @@ export default function ServiceForm() {
         main_image: imageUrls[mainImageIndex], // Set the main image
         gallery: imageUrls, // Store all images in gallery
         location: location, // Add location
+        phone_number: phone_number || undefined, // NEW FIELD
       });
 
       setUploadProgress(100);
@@ -203,264 +217,375 @@ export default function ServiceForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Crear Nuevo Servicio</h2>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-            Título del Servicio
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
-            required
-          />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+            Crear Nuevo Servicio
+          </h1>
+          <p className="text-gray-600">Completa la información para publicar tu servicio</p>
         </div>
 
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Descripción
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
-            required
-          />
-        </div>
-
-        <LocationInput
-          value={location}
-          onChange={setLocation}
-          required={true}
-        />
-
-        {/* Image Upload Section */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Imágenes del Servicio (máximo 5)
-          </label>
-
-          {/* Drag & Drop Zone */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition ${
-              isLoading || images.length >= 5
-                ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
-                : 'bg-white border-gray-300 hover:border-blue-500 cursor-pointer'
-            }`}
-          >
-            <Upload className={`w-8 h-8 mb-2 ${
-              isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-500'
-            }`} />
-            <p className={`text-sm ${
-              isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {images.length >= 5 
-                ? 'Límite máximo de imágenes alcanzado' 
-                : 'Arrastra y suelta imágenes aquí o haz clic para seleccionar'
-              }
-            </p>
-            
-            {/* Hidden file input */}
-            <input
-              type="file"
-              id="images"
-              multiple
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-              disabled={isLoading || images.length >= 5}
-            />
-            
-            {/* Clickable label button */}
-            {images.length < 5 && !isLoading && (
-              <label
-                htmlFor="images"
-                className="mt-2 px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
-              >
-                Seleccionar Imágenes
-              </label>
-            )}
-            
-            <p className="text-xs text-gray-500 mt-1">
-              PNG, JPG, GIF hasta 5MB cada una. {images.length}/5 imágenes
-            </p>
-            
-            {/* Loading state */}
-            {isLoading && (
-              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
-                <div className="flex items-center text-sm text-gray-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                  Subiendo imágenes...
-                </div>
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-red-400" />
               </div>
-            )}
-          </div>
-
-          {/* Image Preview Grid */}
-          {images.length > 0 && (
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
-              {images.map((image, index) => (
-                <div key={image.id} className="relative group">
-                  <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                    <Image
-                      src={image.preview}
-                      alt={`Preview ${index + 1}`}
-                      width={200}
-                      height={200}
-                      className="w-full h-full object-cover"
-                      onError={() => {
-                        console.error(`Failed to load image: ${image.preview}`)
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Remove button */}
-                  <button
-                    type="button"
-                    onClick={() => removeImage(image.id)}
-                    disabled={isLoading}
-                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Eliminar imagen"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  
-                  {/* Main image indicator and setter */}
-                  <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                    {mainImageIndex === index ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                        <Star className="w-3 h-3 mr-1 fill-current" />
-                        Principal
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setAsMainImage(index)}
-                        disabled={isLoading}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors disabled:opacity-50"
-                        title="Establecer como imagen principal"
-                      >
-                        <Star className="w-3 h-3 mr-1" />
-                        Principal
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-              Precio Mínimo
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">$</span>
+              <div className="ml-3">
+                <p className="text-red-700">{error}</p>
               </div>
-              <input
-                type="number"
-                id="price"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                min="0"
-                step="0.01"
-                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border px-3 py-2"
-                required
-              />
             </div>
-          </div>
-          <div>
-            <label htmlFor="max_price" className="block text-sm font-medium text-gray-700">
-              Precio Máximo
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">$</span>
-              </div>
-              <input
-                type="number"
-                id="maxPrice"
-                value={max_price}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                min="0"
-                step="0.01"
-                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border px-3 py-2"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-            Categoría
-          </label>
-          <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border px-3 py-2"
-            required
-            disabled={categoriesLoading}
-          >
-            <option value="">
-              {categoriesLoading ? 'Cargando categorías...' : 'Selecciona una categoría'}
-            </option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.name} title={cat.description}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          {categoriesError && (
-            <p className="mt-1 text-sm text-red-600">
-              Error al cargar categorías: {categoriesError}
-            </p>
-          )}
-        </div>
-
-        {/* Progress Bar */}
-        {isLoading && uploadProgress > 0 && (
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
-            <p className="text-sm text-gray-600 mt-1">
-              Subiendo... {Math.round(uploadProgress)}%
-            </p>
           </div>
         )}
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={isLoading || images.length === 0}
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Creando...' : 'Publicar Servicio'}
-          </button>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            
+            {/* Service Basic Info */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-purple-600" />
+                  Información Básica
+                </h2>
+              </div>
+
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  Título del Servicio *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  placeholder="Ej: Plomería domiciliaria, Diseño gráfico, Clases de guitarra..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción *
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
+                  placeholder="Describe detalladamente tu servicio, experiencia y lo que incluye..."
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                  <Phone className="w-5 h-5 mr-2 text-blue-600" />
+                  Información de Contacto
+                </h2>
+              </div>
+
+              <div>
+                <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-2">
+                  Teléfono de Contacto
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    id="phone_number"
+                    value={phone_number}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                    placeholder="+57 300 123 4567"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Opcional - Los clientes podrán contactarte directamente</p>
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-green-600" />
+                  Ubicación
+                </h2>
+              </div>
+
+              <LocationInput
+                value={location}
+                onChange={setLocation}
+                required={true}
+              />
+            </div>
+
+            {/* Images */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                  <Camera className="w-5 h-5 mr-2 text-pink-600" />
+                  Imágenes del Servicio
+                </h2>
+              </div>
+
+              {/* Drag & Drop Zone */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all duration-200 ${
+                  isLoading || images.length >= 5
+                    ? 'bg-gray-50 border-gray-300 cursor-not-allowed'
+                    : 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-300 hover:border-purple-500 cursor-pointer hover:bg-gradient-to-br hover:from-purple-100 hover:to-blue-100'
+                }`}
+              >
+                <Upload className={`w-12 h-12 mb-4 ${
+                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-purple-500'
+                }`} />
+                <p className={`text-lg font-medium mb-2 ${
+                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-700'
+                }`}>
+                  {images.length >= 5 
+                    ? 'Límite máximo de imágenes alcanzado' 
+                    : 'Arrastra y suelta imágenes aquí'
+                  }
+                </p>
+                <p className={`text-sm ${
+                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  o haz clic para seleccionar archivos
+                </p>
+                
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  id="images"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={isLoading || images.length >= 5}
+                />
+                
+                {/* Clickable label button */}
+                {images.length < 5 && !isLoading && (
+                  <label
+                    htmlFor="images"
+                    className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    Seleccionar Imágenes
+                  </label>
+                )}
+                
+                <div className="flex items-center mt-4 space-x-4 text-xs text-gray-500">
+                  <span>PNG, JPG, GIF hasta 5MB</span>
+                  <span>•</span>
+                  <span className={`font-medium ${images.length === 5 ? 'text-red-500' : 'text-purple-600'}`}>
+                    {images.length}/5 imágenes
+                  </span>
+                </div>
+                
+                {/* Loading state */}
+                {isLoading && (
+                  <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-xl">
+                    <div className="flex items-center text-purple-600">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mr-3"></div>
+                      <span className="font-medium">Subiendo imágenes...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Image Preview Grid */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  {images.map((image, index) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 shadow-md">
+                        <Image
+                          src={image.preview}
+                          alt={`Preview ${index + 1}`}
+                          width={200}
+                          height={200}
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                          onError={() => {
+                            console.error(`Failed to load image: ${image.preview}`)
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Remove button */}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(image.id)}
+                        disabled={isLoading}
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                        title="Eliminar imagen"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      
+                      {/* Main image indicator and setter */}
+                      <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                        {mainImageIndex === index ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg">
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            Principal
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setAsMainImage(index)}
+                            disabled={isLoading}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 shadow-md hover:shadow-lg"
+                            title="Establecer como imagen principal"
+                          >
+                            <Star className="w-3 h-3 mr-1" />
+                            Principal
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pricing and Category */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                  <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+                  Precios y Categoría
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                    Precio Mínimo *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="text-gray-500 font-medium">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      id="price"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="max_price" className="block text-sm font-medium text-gray-700 mb-2">
+                    Precio Máximo *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="text-gray-500 font-medium">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      id="maxPrice"
+                      value={max_price}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                  Categoría *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Tag className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white appearance-none"
+                    required
+                    disabled={categoriesLoading}
+                  >
+                    <option value="">
+                      {categoriesLoading ? 'Cargando categorías...' : 'Selecciona una categoría'}
+                    </option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.name} title={cat.description}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {categoriesError && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <X className="w-4 h-4 mr-1" />
+                    Error al cargar categorías: {categoriesError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            {isLoading && uploadProgress > 0 && (
+              <div className="space-y-2">
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-600 text-center font-medium">
+                  Subiendo... {Math.round(uploadProgress)}%
+                </p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="flex justify-end pt-6 border-t border-gray-200">
+              <button
+                type="submit"
+                disabled={isLoading || images.length === 0}
+                className="px-8 py-4 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
+              >
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    Creando Servicio...
+                  </span>
+                ) : (
+                  'Publicar Servicio'
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
