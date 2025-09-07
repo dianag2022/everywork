@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, Loader2, AlertCircle,  DollarSign } from 'lucide-react';
+import { Search, MapPin, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import {  ServiceWithProvider } from '@/types/database';
+import { ServiceWithProvider } from '@/types/database';
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet';
 import { useMapEvents } from 'react-leaflet'
@@ -12,8 +12,16 @@ interface MapSearchProps {
   services: ServiceWithProvider[]
   selectedService: ServiceWithProvider | null
   onServiceSelect: (service: ServiceWithProvider) => void
-  onZoomChange?: (zoomLevel: number) => void // New prop
+  onZoomChange?: (zoomLevel: number) => void
 }
+
+// Fix Leaflet default marker icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 // Component to handle map events
 function MapEventHandler({ onZoomChange }: { onZoomChange?: (zoom: number, bounds?: { lat: number; lng: number }[]) => void }) {
@@ -32,7 +40,6 @@ function MapEventHandler({ onZoomChange }: { onZoomChange?: (zoom: number, bound
       }
     },
     moveend: () => {
-      // Also trigger when map is panned
       const zoomLevel = map.getZoom()
       const mapBounds = map.getBounds()
       const boundsArray = [
@@ -50,35 +57,28 @@ function MapEventHandler({ onZoomChange }: { onZoomChange?: (zoom: number, bound
   return null
 }
 
-// Alternative: Add a reset button to clear the maximum radius
-function ResetSearchButton({ onReset }: { onReset: () => void }) {
-  return (
-    <button 
-      onClick={onReset}
-      className="text-xs text-blue-600 hover:text-blue-800"
-    >
-      Reset search area
-    </button>
-  )
-}
-
-// Corrige el icono de Leaflet
-const serviceIcon = L.icon({
-  iconUrl: "/marker-icon.png",
-  shadowUrl: "/marker-icon.png",
+// Service icon
+const serviceIcon = new L.Icon({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
-  iconAnchor: [12, 41]
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 })
 
-// Icono para la ubicación del usuario
-const userLocationIcon = L.icon({
-  iconUrl: "/marker-icon.png",
-  shadowUrl: "/marker-icon.png",
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
+// User location icon
+const userLocationIcon = new L.Icon({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+  className: 'user-location-marker'
 })
 
-// Componente para cambiar el centro del mapa
+// Component to change map center
 function ChangeMapCenter({ center }: { center: [number, number] }) {
   const map = useMap()
   
@@ -89,11 +89,36 @@ function ChangeMapCenter({ center }: { center: [number, number] }) {
   return null
 }
 
+// Component to handle map resize on mobile
+function MapResizer() {
+  const map = useMap()
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 100)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    
+    // Initial resize to handle mobile rendering
+    setTimeout(() => {
+      map.invalidateSize()
+    }, 100)
+    
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [map])
+  
+  return null
+}
+
 interface UserLocation {
   lat: number
   lng: number
 }
-
 
 export default function MapSearch({ services, selectedService, onServiceSelect, onZoomChange }: MapSearchProps) {
   const [query, setQuery] = useState('')
@@ -101,10 +126,20 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [mapCenter, setMapCenter] = useState<[number, number]>([4.711, -74.0721]) // Bogotá por defecto
+  const [mapMounted, setMapMounted] = useState(false)
   const router = useRouter()
   const mapRef = useRef<L.Map | null>(null)
   
-  // Detectar ubicación del usuario al cargar el componente
+  // Ensure map is properly mounted
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMapMounted(true)
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, [])
+  
+  // Get user location on mount
   useEffect(() => {
     getUserLocation()
   }, [])
@@ -133,8 +168,6 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         setUserLocation(newLocation)
         setMapCenter([latitude, longitude])
         setLocationLoading(false)
-        
-        // console.log('User location:', newLocation)
       },
       (error) => {
         let errorMessage = 'Error al obtener ubicación'
@@ -158,7 +191,7 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 300000 // 5 minutos
+        maximumAge: 300000
       }
     )
   }
@@ -172,10 +205,8 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
 
   const handleLocationClick = () => {
     if (userLocation) {
-      // Si ya tenemos la ubicación, centrar el mapa ahí
       setMapCenter([userLocation.lat, userLocation.lng])
     } else {
-      // Si no tenemos ubicación, pedirla de nuevo
       getUserLocation()
     }
   }
@@ -184,16 +215,7 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
     if (onServiceSelect) {
       onServiceSelect(service)
     }
-    // Redirect to service detail page
     router.push(`/services/${service.id}`)
-  }
-
-  const formatDistance = (distance?: number) => {
-    if (!distance) return ''
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)}m away`
-    }
-    return `${distance.toFixed(1)}km away`
   }
 
   const createServiceIcon = (imageUrl: string | null) => {
@@ -211,25 +233,37 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
             overflow: hidden; 
             background: white; 
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 2px solid #3b82f6;
           ">
             <img 
               src="${imageUrl}" 
               style="width: 100%; height: 100%; object-fit: cover;" 
+              onerror="this.style.display='none'"
             />
           </div>
         `,
         iconSize: [40, 40],
-        iconAnchor: [20, 40], // bottom center
-        popupAnchor: [0, -40] // above marker
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
       })
-    } else {
-      return serviceIcon
     }
+    return serviceIcon
   }
-  
+
+  // Show loading state until map is ready
+  if (!mapMounted) {
+    return (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Preparando mapa...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex-1 relative">
+    <div className="w-full h-full relative">
       {/* Location Error Banner */}
       {locationError && (
         <div className="absolute top-0 left-0 right-0 bg-yellow-50 border-b border-yellow-200 p-3 z-20">
@@ -248,25 +282,32 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         </div>
       )}
 
-    {/* Map Section */}
-    <MapContainer
+      {/* Map Container */}
+      <MapContainer
         center={mapCenter}
         zoom={12}
         scrollWheelZoom={true}
-        className="absolute inset-0 w-full h-full z-0"
-        ref={mapRef}
+        style={{ height: '100%', width: '100%' }}
+        className="z-0"
+        // whenReady={(map) => {
+        //   mapRef.current = map.target
+        //   // Force invalidate size to handle mobile rendering
+        //   setTimeout(() => {
+        //     map.target.invalidateSize()
+        //   }, 100)
+        // }}
       >
         <MapEventHandler onZoomChange={onZoomChange} />
+        <MapResizer />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {/* Componente para cambiar el centro */}
         <ChangeMapCenter center={mapCenter} />
         
-        {/* Marcador de ubicación del usuario */}
-        {userLocation && userLocationIcon && (
+        {/* User location marker */}
+        {userLocation && (
           <Marker 
             position={[userLocation.lat, userLocation.lng]} 
             icon={userLocationIcon}
@@ -281,20 +322,21 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         )}
         
         {/* Service markers */}
-        {L && services.map((service) => {
+        {services.map((service) => {
           if (!service.latitude || !service.longitude) return null
           
-          const serviceIcon = createServiceIcon(service.main_image || (service.gallery && service.gallery[0]) || null)
-          if (!serviceIcon) return null
+          const icon = createServiceIcon(
+            service.main_image || (service.gallery && service.gallery[0]) || null
+          )
           
           return (
             <Marker 
               key={service.id}
               position={[service.latitude, service.longitude]} 
-              icon={serviceIcon}
+              icon={icon}
             >
-              <Popup>
-                <div className="w-64 p-2">
+              <Popup maxWidth={280} className="custom-popup">
+                <div className="p-2">
                   {/* Service Image */}
                   {service.gallery && service.gallery[0] && (
                     <div className="w-full h-32 mb-3 rounded-lg overflow-hidden">
@@ -322,35 +364,13 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
                         <DollarSign className="w-3 h-3 mr-1" />
                         <span className="text-sm font-medium">
                           ${service.min_price}
-                          {service.max_price && ` - ${service.max_price}`}
+                          {service.max_price && service.max_price !== service.min_price && ` - ${service.max_price}`}
                         </span>
                       </div>
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                         {service.category}
                       </span>
                     </div>
-                    
-                    {/* Distance */}
-                    {/* {service.distance !== undefined && (
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        <span className="text-xs">{formatDistance(service.distance)}</span>
-                      </div>
-                    )} */}
-                    
-                    {/* Address */}
-                    {/* {service.address && (
-                      <p className="text-xs text-gray-500 truncate">
-                        📍 {service.city || service.address}
-                      </p>
-                    )} */}
-                    
-                    {/* Provider Info */}
-                    {/* {service.provider && service.provider.raw_user_meta_data?.nombre && (
-                      <p className="text-xs text-gray-600">
-                        Por: {service.provider.raw_user_meta_data.nombre}
-                      </p>
-                    )} */}
                     
                     {/* Action Button */}
                     <button
@@ -367,8 +387,8 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         })}
       </MapContainer>
 
-      {/* Map Controls */}
-      <div className="absolute top-4 right-4 flex flex-col space-y-2 z-10">
+      {/* Map Controls - Hidden on mobile to save space */}
+      <div className="absolute top-4 right-4 hidden md:flex flex-col space-y-2 z-10">
         <button 
           onClick={() => mapRef.current?.zoomIn()}
           className="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50"
@@ -383,8 +403,8 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         </button>
       </div>
 
-      {/* Map Search Bar */}
-      <div className={`absolute top-4 left-4 right-16 z-10 ${locationError ? 'mt-16' : ''}`}>
+      {/* Map Search Bar - Hidden on mobile */}
+      <div className={`absolute top-4 left-4 right-16 z-10 hidden md:block ${locationError ? 'mt-16' : ''}`}>
         <div className="bg-white rounded-lg shadow-md p-3">
           <form onSubmit={handleSearch}>
             <div className="relative">
@@ -419,25 +439,18 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         </button>
       </div>
 
-      {/* Location Status Indicator */}
-      {userLocation && (
-        <div className="absolute bottom-20 right-4 z-10">
-          <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-            Ubicación detectada
-          </div>
-        </div>
-      )}
-
-      {/* Services Count */}
+      {/* Services Count - Hidden on small mobile screens */}
       {services.length > 0 && (
-        <div className="absolute bottom-4 left-4 z-10">
+        <div className="absolute bottom-4 left-4 z-10 hidden sm:block">
           <div className="bg-white px-3 py-2 rounded-lg shadow-md">
             <span className="text-sm text-gray-600">
-              {services.length} servicio{services.length !== 1 ? 's' : ''} encontrado{services.length !== 1 ? 's' : ''}
+              {services.length} servicio{services.length !== 1 ? 's' : ''}
             </span>
           </div>
         </div>
       )}
+
+     
     </div>
   )
 }

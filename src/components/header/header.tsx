@@ -19,7 +19,7 @@ export default function Header() {
               <div className="relative">
                 <Image
                   src="/logo.png"
-                  alt="EveryWork logo"
+                  alt="everywork logo"
                   width={52}
                   height={52}
                   className="rounded-full object-cover shadow-md group-hover:shadow-lg transition-shadow duration-200"
@@ -29,7 +29,7 @@ export default function Header() {
               </div>
               <div className="ml-3 hidden sm:block">
                 <h1 className="text-xl font-bold text-gray-800 group-hover:text-blue-700 transition-colors duration-200">
-                  EveryWork
+                  everywork
                 </h1>
                 <p className="text-xs text-gray-500 -mt-1">Tu trabajo, nuestra pasión</p>
               </div>

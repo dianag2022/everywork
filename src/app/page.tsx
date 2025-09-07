@@ -145,7 +145,7 @@ export default function Home() {
               <div className="relative">
                 <Image
                   src="/logo.png"
-                  alt="EveryWork logo"
+                  alt="everywork logo"
                   width={52}
                   height={52}
                   className="rounded-full object-cover shadow-md group-hover:shadow-lg transition-shadow duration-200"
