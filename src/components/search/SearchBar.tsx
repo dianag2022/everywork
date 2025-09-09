@@ -1,17 +1,38 @@
 "use client"
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
 
 export default function SearchBar() {
   const [query, setQuery] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Initialize query from URL params on component mount
+  useEffect(() => {
+    const urlQuery = searchParams.get('query')
+    if (urlQuery) {
+      setQuery(urlQuery)
+    }
+  }, [searchParams])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (query.trim()) {
       router.push(`/search?query=${encodeURIComponent(query.trim())}`)
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQuery = e.target.value
+    setQuery(newQuery)
+    
+    // Remove query param from URL when input is empty
+    if (newQuery.trim() === '') {
+      // Remove the query parameter by navigating to the current path without search params
+      const currentPath = window.location.pathname
+      router.replace(currentPath, { scroll: false })
     }
   }
 
@@ -36,7 +57,7 @@ export default function SearchBar() {
           <input
             type="text"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={handleInputChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder="Busca servicios: ej. diseño web, limpieza..."

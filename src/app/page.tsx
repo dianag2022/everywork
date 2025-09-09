@@ -5,9 +5,27 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, Star, Users, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const router = useRouter();
+
+  // Fade & Slide effect state
+  const words = ['talento', 'servicio', 'negocio'];
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentWordIndex(prev => (prev + 1) % words.length);
+        setIsVisible(true);
+      }, 400); // Time for fade out
+    }, 3000); // Change word every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <main className="min-h-screen">
@@ -22,18 +40,26 @@ export default function Home() {
 
         <div className="relative container mx-auto px-4 py-20 lg:py-32">
           <div className="text-center max-w-4xl mx-auto">
-            {/* Main heading */}
-            <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="text-gray-800">Encuentra</span>{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Talentos
-              </span>{' '}
-              <span className="text-gray-800">para trabajar</span>
+            {/* Main heading with fade & slide effect */}
+            {/* Main heading with fade & slide effect */}
+            <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight text-center">
+              <span className="text-gray-800">Busca o publica tu </span>
+              <br className="block sm:hidden" />
+              <span className="relative inline-block w-full max-w-[280px] sm:max-w-none sm:min-w-[320px] lg:min-w-[400px]">
+                <span
+                  className={`bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent transition-all duration-500 ease-in-out block text-center ${isVisible
+                      ? 'opacity-100 transform translate-y-0'
+                      : 'opacity-0 transform -translate-y-8'
+                    }`}
+                >
+                  {words[currentWordIndex]}
+                </span>
+              </span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-xl lg:text-2xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Conecta con profesionales especializados y encuentra el servicio perfecto para tus necesidades
+              Deja que tu comunidad descubra lo increíble que eres en lo que haces
             </p>
 
             {/* Search Bar */}
@@ -59,14 +85,14 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button 
+              <button
                 onClick={() => router.push('/search')}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
               >
                 <span>Explorar Servicios</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <button 
+              <button
                 onClick={() => router.push('/services/new')}
                 className="px-8 py-4 bg-white/80 backdrop-blur-sm hover:bg-white text-gray-800 border-2 border-gray-200 hover:border-blue-300 rounded-full font-semibold text-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
               >
@@ -89,7 +115,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-32 right-20 hidden lg:block animate-float" style={{animationDelay: '1s'}}>
+        <div className="absolute bottom-32 right-20 hidden lg:block animate-float" style={{ animationDelay: '1s' }}>
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-600 rounded-full"></div>
@@ -125,7 +151,7 @@ export default function Home() {
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
             Explora todos nuestros servicios y conecta con los mejores profesionales
           </p>
-          <button 
+          <button
             onClick={() => router.push('/search')}
             className="group px-12 py-5 bg-white hover:bg-gray-50 text-blue-700 font-bold text-lg rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 mx-auto"
           >
@@ -142,19 +168,19 @@ export default function Home() {
             <div className="flex justify-center items-center mb-4">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                 <Link href="/" className="flex items-center group">
-              <div className="relative">
-                <Image
-                  src="/logo.png"
-                  alt="everywork logo"
-                  width={52}
-                  height={52}
-                  className="rounded-full object-cover shadow-md group-hover:shadow-lg transition-shadow duration-200"
-                  priority
-                />
-                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-400/20 to-purple-400/20 group-hover:from-blue-400/30 group-hover:to-purple-400/30 transition-all duration-200"></div>
-              </div>
-              
-            </Link>
+                  <div className="relative">
+                    <Image
+                      src="/logo.png"
+                      alt="everywork logo"
+                      width={52}
+                      height={52}
+                      className="rounded-full object-cover shadow-md group-hover:shadow-lg transition-shadow duration-200"
+                      priority
+                    />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-400/20 to-purple-400/20 group-hover:from-blue-400/30 group-hover:to-purple-400/30 transition-all duration-200"></div>
+                  </div>
+
+                </Link>
               </div>
               <span className="ml-3 text-2xl font-bold text-gray-800">everywork</span>
             </div>

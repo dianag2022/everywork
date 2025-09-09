@@ -234,10 +234,13 @@ export async function getServicesForMap(
 //   return data as Service[]
 // }
 
-// Updated searchServices to include location-based search
+
+// Updated searchServices to match actual schema with min_price and max_price
 export async function searchServices(
   query: string = '',
   category: string = '',
+  minPrice?: number,
+  maxPrice?: number,
   userLocation?: { lat: number; lng: number },
   radiusKm: number = 50
 ): Promise<ServiceWithProvider[]> {
@@ -264,6 +267,18 @@ export async function searchServices(
     // Add category filter
     if (category && category.trim() !== '') {
       supabaseQuery = supabaseQuery.eq('category', category.trim());
+    }
+
+    // Add price range filter
+    // For services with price ranges, we need to check if there's any overlap
+    if (minPrice !== undefined && minPrice > 0) {
+      // Service's max_price should be >= user's minimum price requirement
+      supabaseQuery = supabaseQuery.gte('max_price', minPrice);
+    }
+
+    if (maxPrice !== undefined && maxPrice < Number.MAX_SAFE_INTEGER) {
+      // Service's min_price should be <= user's maximum price requirement  
+      supabaseQuery = supabaseQuery.lte('min_price', maxPrice);
     }
 
     const { data, error } = await supabaseQuery.order('created_at', { ascending: false });
@@ -300,6 +315,72 @@ export async function searchServices(
     throw error;
   }
 }
+// Updated searchServices to include location-based search
+// export async function searchServices(
+//   query: string = '',
+//   category: string = '',
+//   userLocation?: { lat: number; lng: number },
+//   radiusKm: number = 50
+// ): Promise<ServiceWithProvider[]> {
+//   try {
+//     let supabaseQuery = supabase
+//       .from('services')
+//       .select(`
+//         *,
+//         provider:profiles (
+//         id,
+//         email,
+//         raw_user_meta_data
+//       )
+//       `)
+//       .eq('status', true);
+
+//     // Add text search
+//     if (query && query.trim() !== '') {
+//       supabaseQuery = supabaseQuery.or(
+//         `title.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%,category.ilike.%${query.trim()}%`
+//       );
+//     }
+
+//     // Add category filter
+//     if (category && category.trim() !== '') {
+//       supabaseQuery = supabaseQuery.eq('category', category.trim());
+//     }
+
+//     const { data, error } = await supabaseQuery.order('created_at', { ascending: false });
+
+//     if (error) throw error;
+
+//     let results = (data || []).map(service => ({
+//       ...service,
+//       gallery: service.gallery || []
+//     })) as Service[];
+
+//     // If user location is provided, filter by distance and add distance field
+//     if (userLocation && userLocation.lat && userLocation.lng) {
+//       results = results
+//         .map(service => {
+//           if (service.latitude && service.longitude) {
+//             const distance = calculateDistance(
+//               userLocation.lat,
+//               userLocation.lng,
+//               service.latitude,
+//               service.longitude
+//             );
+//             return { ...service, distance };
+//           }
+//           return { ...service, distance: Infinity };
+//         })
+//         .filter(service => service.distance <= radiusKm)
+//         .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+//     }
+
+//     return results as ServiceWithProvider[];
+//   } catch (error) {
+//     console.error('Error searching services:', error);
+//     throw error;
+//   }
+// }
 
 // Utility function to calculate distance between two points
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
