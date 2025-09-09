@@ -1,21 +1,14 @@
 "use client"
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 
 export default function SearchBar() {
   const [query, setQuery] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
-  // Initialize query from URL params on component mount
-  useEffect(() => {
-    const urlQuery = searchParams.get('query')
-    if (urlQuery) {
-      setQuery(urlQuery)
-    }
-  }, [searchParams])
+ 
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
