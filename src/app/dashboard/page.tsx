@@ -21,7 +21,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchServices = async () => {
       if (!user?.id) return
-      
+
       try {
         const services = await getServicesByProvider(user.id)
         setActiveServices(services.filter(service => service.status))
@@ -46,14 +46,14 @@ export default function DashboardPage() {
     setDeleteLoading(showDeleteModal.service.id)
     try {
       await deleteService(showDeleteModal.service.id)
-      
+
       // Actualizar el estado local - mover el servicio de activos a inactivos
       setActiveServices(prev => prev.filter(s => s.id !== showDeleteModal.service!.id))
       setInactiveServices(prev => [
         ...prev,
         { ...showDeleteModal.service!, status: false }
       ])
-      
+
       setShowDeleteModal({ show: false, service: null })
     } catch (error) {
       console.error('Error deleting service:', error)
@@ -123,8 +123,8 @@ export default function DashboardPage() {
               </div>
             ) : (
               activeServices.map((service) => (
-                <ServiceListItem 
-                  key={service.id} 
+                <ServiceListItem
+                  key={service.id}
                   service={service}
                   onDelete={handleDeleteService}
                   deleteLoading={deleteLoading === service.id}
@@ -140,8 +140,8 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Inactivos</h2>
             <div className="space-y-3">
               {inactiveServices.map((service) => (
-                <ServiceListItem 
-                  key={service.id} 
+                <ServiceListItem
+                  key={service.id}
                   service={service}
                   onDelete={handleDeleteService}
                   deleteLoading={deleteLoading === service.id}
@@ -161,7 +161,7 @@ export default function DashboardPage() {
               Confirmar eliminación
             </h3>
             <p className="text-gray-600 mb-6">
-              ¿Estás seguro que deseas eliminar el servicio "{showDeleteModal.service?.title}"? 
+              ¿Estás seguro que deseas eliminar el servicio &quot;{showDeleteModal.service?.title}&quot;?
               Esta acción no se puede deshacer.
             </p>
             <div className="flex justify-end space-x-3">
@@ -187,36 +187,35 @@ export default function DashboardPage() {
   )
 }
 
-function ServiceListItem({ 
-  service, 
-  onDelete, 
+function ServiceListItem({
+  service,
+  onDelete,
   deleteLoading,
-  isInactive = false 
-}: { 
+  isInactive = false
+}: {
   service: Service
   onDelete: (service: Service) => void
   deleteLoading: boolean
   isInactive?: boolean
 }) {
   return (
-    <div className={`bg-white rounded-lg p-4 flex items-center space-x-4 shadow-sm border border-gray-100 ${
-      isInactive ? 'opacity-60' : ''
-    }`}>
+    <div className={`bg-white rounded-lg p-4 flex items-center space-x-4 shadow-sm border border-gray-100 ${isInactive ? 'opacity-60' : ''
+      }`}>
       {/* Service Image */}
       <div className="flex-shrink-0">
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
-          {service.main_image  ? (
-             <Link 
-             href={ !isInactive ? `/services/${service.id}` : "#" } 
-             className={isInactive ? "pointer-events-none opacity-50" : ""}
-           >
-             <img
-               src={service.main_image}
-               alt={service.title}
-               className="w-full h-full object-cover"
-             />
-           </Link>
-           
+          {service.main_image ? (
+            <Link
+              href={!isInactive ? `/services/${service.id}` : "#"}
+              className={isInactive ? "pointer-events-none opacity-50" : ""}
+            >
+              <img
+                src={service.main_image}
+                alt={service.title}
+                className="w-full h-full object-cover"
+              />
+            </Link>
+
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
@@ -249,7 +248,7 @@ function ServiceListItem({
             <Edit className="w-5 h-5" />
           </Link>
         )}
-        
+
         {/* Delete Button */}
         {!isInactive && (
           <button
