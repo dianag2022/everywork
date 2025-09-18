@@ -362,7 +362,6 @@ export async function getCategories() {
 }
 
 //reviews
-// Get reviews for a service with pagination
 export async function getServiceReviews(
   serviceId: string,
   page: number = 1,
@@ -371,7 +370,7 @@ export async function getServiceReviews(
 ): Promise<PaginatedReviews> {
   const offset = (page - 1) * limit
 
-  let orderClause = 'created_at desc' // default: newest first
+  let orderClause = 'created_at desc'
   switch (sortBy) {
     case 'oldest':
       orderClause = 'created_at asc'
@@ -387,27 +386,28 @@ export async function getServiceReviews(
       break
   }
 
-  // Get reviews with reviewer info
+  // Get reviews with reviewer info from profiles table
   const { data: reviews, error: reviewsError } = await supabase
     .from('reviews')
     .select(`
       *,
-      reviewer:profiles!reviewer_id (
+      reviewer:profiles (
         id,
         email,
-        raw_user_meta_data
+        full_name,
+        avatar_url
       )
     `)
     .eq('service_id', serviceId)
     .order(orderClause.split(',')[0].split(' ')[0], { 
-      ascending: orderClause.includes('asc'),
-      ...(orderClause.includes(',') && {
-        referencedTable: orderClause.split(',')[1] ? undefined : 'profiles'
-      })
+      ascending: orderClause.includes('asc')
     })
     .range(offset, offset + limit - 1)
 
-  if (reviewsError) throw reviewsError
+  if (reviewsError) {
+    console.error('Error fetching reviews:', reviewsError)
+    throw reviewsError
+  }
 
   // Get total count
   const { count, error: countError } = await supabase

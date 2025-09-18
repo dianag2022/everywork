@@ -211,6 +211,8 @@ function ReviewCard({ review, onHelpful }: { review: ReviewWithReviewer, onHelpf
     }
 
     const getReviewerAvatar = () => {
+        console.log("review.reviewer?", review.reviewer);
+        
         return review.reviewer?.raw_user_meta_data?.avatar_url
     }
 
@@ -329,6 +331,8 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
     const loadReviews = async () => {
         try {
             const reviewsData = await getServiceReviews(service.id, reviewsPage, 10)
+            console.log("reviews data", reviewsData);
+            
             setReviews(reviewsData.reviews)
             setHasMoreReviews(reviewsData.has_more)
         } catch (error) {
