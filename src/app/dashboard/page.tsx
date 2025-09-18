@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { getServicesByProvider } from '@/lib/services'
+import { getServicesByProvider, deleteService } from '@/lib/services'
 import { Service } from '@/types/database'
-import { Edit, Plus } from 'lucide-react'
+import { Edit, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
   const [activeServices, setActiveServices] = useState<Service[]>([])
   const [inactiveServices, setInactiveServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState<{
+    show: boolean
+    service: Service | null
+  }>({ show: false, service: null })
   const { user, isAuthenticated } = useAuth()
 
   useEffect(() => {
@@ -30,6 +35,37 @@ export default function DashboardPage() {
 
     fetchServices()
   }, [user?.id])
+
+  const handleDeleteService = async (service: Service) => {
+    setShowDeleteModal({ show: true, service })
+  }
+
+  const confirmDelete = async () => {
+    if (!showDeleteModal.service) return
+
+    setDeleteLoading(showDeleteModal.service.id)
+    try {
+      await deleteService(showDeleteModal.service.id)
+      
+      // Actualizar el estado local - mover el servicio de activos a inactivos
+      setActiveServices(prev => prev.filter(s => s.id !== showDeleteModal.service!.id))
+      setInactiveServices(prev => [
+        ...prev,
+        { ...showDeleteModal.service!, status: false }
+      ])
+      
+      setShowDeleteModal({ show: false, service: null })
+    } catch (error) {
+      console.error('Error deleting service:', error)
+      // Aquí podrías mostrar un toast de error
+    } finally {
+      setDeleteLoading(null)
+    }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteModal({ show: false, service: null })
+  }
 
   if (!isAuthenticated) {
     return (
@@ -87,7 +123,12 @@ export default function DashboardPage() {
               </div>
             ) : (
               activeServices.map((service) => (
-                <ServiceListItem key={service.id} service={service} />
+                <ServiceListItem 
+                  key={service.id} 
+                  service={service}
+                  onDelete={handleDeleteService}
+                  deleteLoading={deleteLoading === service.id}
+                />
               ))
             )}
           </div>
@@ -99,28 +140,83 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Inactivos</h2>
             <div className="space-y-3">
               {inactiveServices.map((service) => (
-                <ServiceListItem key={service.id} service={service} />
+                <ServiceListItem 
+                  key={service.id} 
+                  service={service}
+                  onDelete={handleDeleteService}
+                  deleteLoading={deleteLoading === service.id}
+                  isInactive={true}
+                />
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirmar eliminación
+            </h3>
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro que deseas eliminar el servicio "{showDeleteModal.service?.title}"? 
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={deleteLoading !== null}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteLoading !== null}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteLoading ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function ServiceListItem({ service }: { service: Service }) {
+function ServiceListItem({ 
+  service, 
+  onDelete, 
+  deleteLoading,
+  isInactive = false 
+}: { 
+  service: Service
+  onDelete: (service: Service) => void
+  deleteLoading: boolean
+  isInactive?: boolean
+}) {
   return (
-    <div className="bg-white rounded-lg p-4 flex items-center space-x-4 shadow-sm border border-gray-100">
+    <div className={`bg-white rounded-lg p-4 flex items-center space-x-4 shadow-sm border border-gray-100 ${
+      isInactive ? 'opacity-60' : ''
+    }`}>
       {/* Service Image */}
       <div className="flex-shrink-0">
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
-          {service.main_image ? (
-            <img
-              src={service.main_image}
-              alt={service.title}
-              className="w-full h-full object-cover"
-            />
+          {service.main_image  ? (
+             <Link 
+             href={ !isInactive ? `/services/${service.id}` : "#" } 
+             className={isInactive ? "pointer-events-none opacity-50" : ""}
+           >
+             <img
+               src={service.main_image}
+               alt={service.title}
+               className="w-full h-full object-cover"
+             />
+           </Link>
+           
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
@@ -135,20 +231,39 @@ function ServiceListItem({ service }: { service: Service }) {
       <div className="flex-1 min-w-0">
         <h3 className="text-lg font-semibold text-gray-900 truncate">
           {service.title}
+          {isInactive && <span className="ml-2 text-sm text-red-500">(Eliminado)</span>}
         </h3>
         <p className="text-sm text-gray-500">
           {service.category || 'Sin categoría'}
         </p>
       </div>
 
-      {/* Edit Button */}
-      <div className="flex-shrink-0">
-        <Link
-          href={`/services/${service.id}/edit`}
-          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <Edit className="w-5 h-5" />
-        </Link>
+      {/* Action Buttons */}
+      <div className="flex-shrink-0 flex items-center space-x-2">
+        {/* Edit Button */}
+        {!isInactive && (
+          <Link
+            href={`/services/${service.id}/edit`}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <Edit className="w-5 h-5" />
+          </Link>
+        )}
+        
+        {/* Delete Button */}
+        {!isInactive && (
+          <button
+            onClick={() => onDelete(service)}
+            disabled={deleteLoading}
+            className="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleteLoading ? (
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-300 border-t-red-600"></div>
+            ) : (
+              <Trash2 className="w-5 h-5" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   )

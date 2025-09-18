@@ -21,8 +21,24 @@ function PriceRangeInputs({
   onRangeChange: (min: number, max: number) => void
   className?: string
 }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
   const [tempMin, setTempMin] = useState(minPrice.toString())
   const [tempMax, setTempMax] = useState(maxPrice.toString())
+
+  // Initialize from URL params on mount and when props change
+  useEffect(() => {
+    const urlMinPrice = searchParams.get('min_price')
+    const urlMaxPrice = searchParams.get('max_price')
+    
+    // Use URL params if available, otherwise use props
+    const newMin = urlMinPrice || minPrice.toString()
+    const newMax = urlMaxPrice || maxPrice.toString()
+    
+    setTempMin(newMin)
+    setTempMax(newMax)
+  }, [searchParams, minPrice, maxPrice])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -33,6 +49,41 @@ function PriceRangeInputs({
     }).format(price)
   }
 
+  const updateURL = (newMin?: string, newMax?: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    
+    // Handle min price
+    const minValue = newMin !== undefined ? newMin : tempMin
+    if (minValue && parseInt(minValue) > 0) {
+      params.set('min_price', minValue)
+    } else {
+      params.delete('min_price')
+    }
+
+    // Handle max price
+    const maxValue = newMax !== undefined ? newMax : tempMax
+    if (maxValue && parseInt(maxValue) < 10000000) {
+      params.set('max_price', maxValue)
+    } else {
+      params.delete('max_price')
+    }
+
+    // Keep existing query and category parameters
+    const query = searchParams.get('query')
+    const category = searchParams.get('category')
+    
+    if (query) {
+      params.set('query', query)
+    }
+    
+    if (category) {
+      params.set('category', category)
+    }
+
+    // Update the URL
+    router.push(`/search?${params.toString()}`, { scroll: false })
+  }
+
   const handleMinChange = (value: string) => {
     // Only allow numbers
     const numericValue = value.replace(/[^\d]/g, '')
@@ -41,6 +92,9 @@ function PriceRangeInputs({
     const minNum = parseInt(numericValue) || 0
     const maxNum = parseInt(tempMax) || 10000000
     onRangeChange(minNum, maxNum)
+
+    // Update URL
+    updateURL(numericValue, undefined)
   }
 
   const handleMaxChange = (value: string) => {
@@ -51,12 +105,42 @@ function PriceRangeInputs({
     const minNum = parseInt(tempMin) || 0
     const maxNum = parseInt(numericValue) || 10000000
     onRangeChange(minNum, maxNum)
+
+    // Update URL
+    updateURL(undefined, numericValue)
   }
 
   const clearFilters = () => {
     setTempMin('0')
     setTempMax('10000000')
     onRangeChange(0, 10000000)
+    
+    // Remove price params from URL
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('min_price')
+    params.delete('max_price')
+    
+    // Keep existing query and category parameters
+    const query = searchParams.get('query')
+    const category = searchParams.get('category')
+    
+    if (query) {
+      params.set('query', query)
+    }
+    
+    if (category) {
+      params.set('category', category)
+    }
+
+    router.push(`/search?${params.toString()}`, { scroll: false })
+  }
+
+  const handlePresetClick = (preset: { label: string, min: number, max: number }) => {
+    setTempMin(preset.min.toString())
+    setTempMax(preset.max.toString())
+    onRangeChange(preset.min, preset.max)
+    
+    updateURL(preset.min.toString(), preset.max.toString())
   }
 
   return (
@@ -125,11 +209,7 @@ function PriceRangeInputs({
         ].map((preset) => (
           <button
             key={preset.label}
-            onClick={() => {
-              setTempMin(preset.min.toString())
-              setTempMax(preset.max.toString())
-              onRangeChange(preset.min, preset.max)
-            }}
+            onClick={() => handlePresetClick(preset)}
             className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700 rounded-full transition-all duration-200 border border-transparent hover:border-green-200"
           >
             {preset.label}
@@ -146,6 +226,10 @@ function SearchContent() {
   const router = useRouter()
   const query = searchParams.get('query') || ''
   const categoryParam = searchParams.get('category') || ''
+  
+  // Initialize price range from URL parameters
+  const initialMinPrice = parseInt(searchParams.get('min_price') || '0') || 0
+  const initialMaxPrice = parseInt(searchParams.get('max_price') || '10000000') || 10000000
 
   const [services, setServices] = useState<ServiceWithProvider[]>([])
   const [filteredServices, setFilteredServices] = useState<ServiceWithProvider[]>([])
@@ -154,7 +238,10 @@ function SearchContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false)
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000000 })
+  const [priceRange, setPriceRange] = useState({ 
+    min: initialMinPrice, 
+    max: initialMaxPrice 
+  })
   const [hasActiveFilters, setHasActiveFilters] = useState(false)
 
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
@@ -163,6 +250,17 @@ function SearchContent() {
   useEffect(() => {
     setCategory(categoryParam)
   }, [categoryParam])
+
+  // Update price range when URL parameters change
+  useEffect(() => {
+    const urlMinPrice = parseInt(searchParams.get('min_price') || '0') || 0
+    const urlMaxPrice = parseInt(searchParams.get('max_price') || '10000000') || 10000000
+    
+    setPriceRange({ 
+      min: urlMinPrice, 
+      max: urlMaxPrice 
+    })
+  }, [searchParams])
 
   useEffect(() => {
     async function fetchResults() {
@@ -205,7 +303,7 @@ function SearchContent() {
     setIsFilterOpen(false)
 
     // Update URL with the new category filter
-    const params = new URLSearchParams(searchParams)
+    const params = new URLSearchParams(searchParams.toString())
     if (selectedCategory) {
       params.set('category', selectedCategory)
     } else {
@@ -226,11 +324,21 @@ function SearchContent() {
   }
 
   const clearAllFilters = () => {
-    router.push(`/search`, { scroll: false })
+    setCategory('')
+    setPriceRange({ min: 0, max: 10000000 })
+    
+    // If there's a query, keep it, otherwise go to clean search page
+    const params = new URLSearchParams()
+    if (query) {
+      params.set('query', query)
+      router.push(`/search?${params.toString()}`, { scroll: false })
+    } else {
+      router.push(`/search`, { scroll: false })
+    }
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-10">
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="text-center mb-8">
@@ -308,13 +416,20 @@ function SearchContent() {
              <div className="relative">
                 <button
                   onClick={() => setIsPriceFilterOpen(!isPriceFilterOpen)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 rounded-full transition-all duration-200 border border-green-200"
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-200 border ${
+                    (priceRange.min > 0 || priceRange.max < 10000000)
+                      ? 'bg-gradient-to-r from-green-200 to-emerald-200 border-green-300 text-green-800'
+                      : 'bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 border-green-200 text-green-700'
+                  }`}
                 >
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">
-                    Precio
+                  <DollarSign className="w-4 h-4" />
+                  <span className="text-sm font-medium">
+                    {(priceRange.min > 0 || priceRange.max < 10000000) 
+                      ? `$${(priceRange.min / 1000).toFixed(0)}k - $${(priceRange.max / 1000).toFixed(0)}k`
+                      : 'Precio'
+                    }
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-green-600 transition-transform duration-200 ${isPriceFilterOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isPriceFilterOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Price Filter Dropdown */}
