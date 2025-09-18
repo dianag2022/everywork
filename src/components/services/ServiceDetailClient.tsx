@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Send, Camera, Trash2 } from 'lucide-react'
 import WhatsAppButton from '@/components/services/WhatsAppButton'
 import type { ServiceWithProvider } from '@/types/database'
-import type { ReviewWithReviewer, ReviewStats, CreateReviewData } from '@/types/review'
+import type { ReviewWithReviewer, ReviewStats, CreateReviewData, Review } from '@/types/review'
 import ServiceImageGallery from './ServiceImageGallery'
 import { useAuth } from '@/hooks/useAuth'
 import { getServiceReviews, getServiceReviewStats, createReview, hasUserReviewedService, getUserReviewForService, updateReview } from '@/lib/services'
@@ -19,7 +19,7 @@ function ReviewForm({
 }: { 
     serviceId: string
     onReviewSubmitted: () => void
-    existingReview?: any
+    existingReview?: Review
     onCancel?: () => void
 }) {
     const { user } = useAuth()
@@ -63,9 +63,10 @@ function ReviewForm({
                 setComment('')
                 setImages([])
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error submitting review:', error)
-            alert(error.message || 'Error al enviar la reseña')
+            const errorMessage = error instanceof Error ? error.message : 'Error al enviar la reseña'
+            alert(errorMessage)
         } finally {
             setIsSubmitting(false)
         }
@@ -211,9 +212,8 @@ function ReviewCard({ review, onHelpful }: { review: ReviewWithReviewer, onHelpf
     }
 
     const getReviewerAvatar = () => {
-        console.log("review.reviewer?", review.reviewer);
-        
-        return review.reviewer?.raw_user_meta_data?.avatar_url
+        const userData = review.reviewer?.raw_user_meta_data
+        return userData?.avatar_url
     }
 
     return (
@@ -311,7 +311,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
     const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
     const [loading, setLoading] = useState(true)
     const [hasReviewed, setHasReviewed] = useState(false)
-    const [userReview, setUserReview] = useState<any>(null)
+    const [userReview, setUserReview] = useState<Review | null>(null)
     const [showReviewForm, setShowReviewForm] = useState(false)
     const [reviewsPage, setReviewsPage] = useState(1)
     const [hasMoreReviews, setHasMoreReviews] = useState(false)
@@ -588,7 +588,14 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                     Editar
                                 </button>
                             </div>
-                            <ReviewCard review={{ ...userReview, reviewer: { raw_user_meta_data: user.user_metadata } }} />
+                            <ReviewCard review={{ 
+                                ...userReview, 
+                                reviewer: { 
+                                    id: user.id,
+                                    email: user.email || '',
+                                    raw_user_meta_data: user.user_metadata || null
+                                } 
+                            } as ReviewWithReviewer} />
                         </div>
                     )}
 
