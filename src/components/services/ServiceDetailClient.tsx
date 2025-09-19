@@ -19,7 +19,7 @@ function ReviewForm({
 }: { 
     serviceId: string
     onReviewSubmitted: () => void
-    existingReview?: Review
+    existingReview?: Review | null
     onCancel?: () => void
 }) {
     const { user } = useAuth()
