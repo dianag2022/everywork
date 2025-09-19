@@ -207,12 +207,12 @@ function ReviewCard({ review, onHelpful }: { review: ReviewWithReviewer, onHelpf
     }
 
     const getReviewerName = () => {
-        const userData = review.reviewer?.raw_user_meta_data
-        return userData?.name || userData?.full_name || review.reviewer?.email?.split('@')[0] || 'Usuario anónimo'
+        const userData = review.reviewer;
+        return userData?.full_name || userData.email?.split('@')[0] || 'Usuario anónimo'
     }
 
     const getReviewerAvatar = () => {
-        const userData = review.reviewer?.raw_user_meta_data
+        const userData = review.reviewer;
         return userData?.avatar_url
     }
 
