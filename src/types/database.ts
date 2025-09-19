@@ -43,6 +43,8 @@ export interface ServiceWithProvider extends Service {
       "email_verified": boolean
       "phone_verified": boolean
     }
+    embed_title?: string
+    embed_url?: string
   }
 }
 
