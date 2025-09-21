@@ -13,7 +13,9 @@ export function ServicesList() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const data = await getActiveServices()
+        const data = await getActiveServices();
+        console.log("data", data);
+        
         setServices(data)
       } catch (error) {
         console.error('Error fetching services:', error)

@@ -324,17 +324,7 @@ function SearchContent() {
   }
 
   const clearAllFilters = () => {
-    setCategory('')
-    setPriceRange({ min: 0, max: 10000000 })
-    
-    // If there's a query, keep it, otherwise go to clean search page
-    const params = new URLSearchParams()
-    if (query) {
-      params.set('query', query)
-      router.push(`/search?${params.toString()}`, { scroll: false })
-    } else {
-      router.push(`/search`, { scroll: false })
-    }
+    router.push('/search')
   }
 
   return (

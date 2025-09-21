@@ -1,67 +1,44 @@
+// ==================== src/app/auth/callback/page.tsx ====================
+// Página para manejar el callback de OAuth
 'use client';
-
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '../../../lib/supabase';
 
 export default function AuthCallback() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        console.log('Auth callback: Starting auth flow');
-        
-        // Handle the OAuth callback
         const { data, error } = await supabase.auth.getSession();
-        
-        console.log('Auth callback: Session data:', { 
-          hasSession: !!data.session, 
-          hasUser: !!data.session?.user,
-          error: error?.message 
-        });
         
         if (error) {
           console.error('Error during auth callback:', error);
-          router.push('/auth/signin?error=auth_callback_error');
+          router.push('/login?error=auth_error');
           return;
         }
 
-        if (data.session?.user) {
-          // User authenticated successfully
-          console.log('Auth callback: User authenticated successfully');
-          
-          // Check for callback URL in search params
-          const urlParams = new URLSearchParams(window.location.search);
-          const callbackUrl = urlParams.get('callbackUrl') || urlParams.get('redirectTo');
-          
-          console.log('Auth callback: Redirecting to:', callbackUrl || '/');
-          
-          if (callbackUrl) {
-            router.push(callbackUrl);
-          } else {
-            router.push('/');
-          }
+        if (data.session) {
+          // Usuario autenticado exitosamente
+          router.push('/dashboard'); // O donde quieras redirigir
         } else {
-          // No session, redirect to login
-          console.log('Auth callback: No session found, redirecting to signin');
-          router.push('/auth/signin');
+          router.push('/login');
         }
       } catch (error) {
-        console.error('Error during auth callback:', error);
-        router.push('/auth/signin?error=unknown_error');
+        console.error('Unexpected error during auth callback:', error);
+        router.push('/login?error=unexpected_error');
       }
     };
 
     handleAuthCallback();
-  }, [router, supabase.auth]);
+  }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p className="text-gray-600">Procesando autenticación...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4">Completing authentication...</p>
       </div>
     </div>
   );

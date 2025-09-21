@@ -13,7 +13,7 @@ export function useAuth() {
   const supabase = createClientComponentClient();
 
   useEffect(() => {
-    // Get initial session
+    // Get initial sessiona
     const getInitialSession = async () => {
       console.log('useAuth: Getting initial session...');
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -22,7 +22,8 @@ export function useAuth() {
         hasSession: !!session,
         hasUser: !!session?.user,
         error: error?.message,
-        userId: session?.user?.id
+        userId: session?.user?.id,
+        session: session
       });
       
       setSession(session);

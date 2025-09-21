@@ -59,7 +59,7 @@ function MapEventHandler({ onZoomChange }: { onZoomChange?: (zoom: number, bound
       }
     }
   })
-  
+
   return null
 }
 
@@ -87,37 +87,37 @@ const userLocationIcon = new L.Icon({
 // Component to change map center
 function ChangeMapCenter({ center }: { center: [number, number] }) {
   const map = useMap()
-  
+
   useEffect(() => {
     map.setView(center, map.getZoom())
   }, [center, map])
-  
+
   return null
 }
 
 // Component to handle map resize on mobile
 function MapResizer() {
   const map = useMap()
-  
+
   useEffect(() => {
     const handleResize = () => {
       setTimeout(() => {
         map.invalidateSize()
       }, 100)
     }
-    
+
     window.addEventListener('resize', handleResize)
-    
+
     // Initial resize to handle mobile rendering
     setTimeout(() => {
       map.invalidateSize()
     }, 100)
-    
+
     return () => {
       window.removeEventListener('resize', handleResize)
     }
   }, [map])
-  
+
   return null
 }
 
@@ -131,20 +131,20 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
-  const [mapCenter, setMapCenter] = useState<[number, number]>([4.711, -74.0721]) // Bogotá por defecto
+  const [mapCenter, setMapCenter] = useState<[number, number]>([3.451, -76.532]) // Cali por defecto
   const [mapMounted, setMapMounted] = useState(false)
   const router = useRouter()
   const mapRef = useRef<L.Map | null>(null)
-  
+
   // Ensure map is properly mounted
   useEffect(() => {
     const timer = setTimeout(() => {
       setMapMounted(true)
     }, 100)
-    
+
     return () => clearTimeout(timer)
   }, [])
-  
+
   // Get user location on mount
   useEffect(() => {
     getUserLocation()
@@ -170,14 +170,14 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
       (position) => {
         const { latitude, longitude } = position.coords
         const newLocation = { lat: latitude, lng: longitude }
-        
+
         setUserLocation(newLocation)
         setMapCenter([latitude, longitude])
         setLocationLoading(false)
       },
       (error) => {
         let errorMessage = 'Error al obtener ubicación'
-        
+
         switch (error.code) {
           case error.PERMISSION_DENIED:
             errorMessage = 'Permiso de ubicación denegado'
@@ -189,7 +189,7 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
             errorMessage = 'Tiempo de espera agotado'
             break
         }
-        
+
         setLocationError(errorMessage)
         setLocationLoading(false)
         console.error('Geolocation error:', error)
@@ -202,12 +202,14 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
     )
   }
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (query.trim()) {
-      router.push(`/map?location=${encodeURIComponent(query.trim())}`)
-    }
-  }
+  // const handleSearch = (e: React.FormEvent) => {
+  //   e.preventDefault()
+  //   if (locationSearched.trim()) {
+  //     // Redirigir con la query para filtrar servicios
+  //     router.push(`/map?location=${encodeURIComponent(locationSearched.trim())}`)
+  //   }
+  // }
+  
 
   const handleLocationClick = () => {
     if (userLocation) {
@@ -295,13 +297,13 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
         className="z-0"
-        // whenReady={(map) => {
-        //   mapRef.current = map.target
-        //   // Force invalidate size to handle mobile rendering
-        //   setTimeout(() => {
-        //     map.target.invalidateSize()
-        //   }, 100)
-        // }}
+      // whenReady={(map) => {
+      //   mapRef.current = map.target
+      //   // Force invalidate size to handle mobile rendering
+      //   setTimeout(() => {
+      //     map.target.invalidateSize()
+      //   }, 100)
+      // }}
       >
         <MapEventHandler onZoomChange={onZoomChange} />
         <MapResizer />
@@ -309,13 +311,13 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         <ChangeMapCenter center={mapCenter} />
-        
+
         {/* User location marker */}
         {userLocation && (
-          <Marker 
-            position={[userLocation.lat, userLocation.lng]} 
+          <Marker
+            position={[userLocation.lat, userLocation.lng]}
             icon={userLocationIcon}
           >
             <Popup>
@@ -326,19 +328,19 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
             </Popup>
           </Marker>
         )}
-        
+
         {/* Service markers */}
         {services.map((service) => {
           if (!service.latitude || !service.longitude) return null
-          
+
           const icon = createServiceIcon(
             service.main_image || (service.gallery && service.gallery[0]) || null
           )
-          
+
           return (
-            <Marker 
+            <Marker
               key={service.id}
-              position={[service.latitude, service.longitude]} 
+              position={[service.latitude, service.longitude]}
               icon={icon}
             >
               <Popup maxWidth={280} className="custom-popup">
@@ -353,17 +355,17 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
                       />
                     </div>
                   )}
-                  
+
                   {/* Service Info */}
                   <div className="space-y-2">
                     <h3 className="font-semibold text-gray-900 text-sm leading-tight">
                       {service.title}
                     </h3>
-                    
+
                     <p className="text-xs text-gray-600 line-clamp-2">
                       {service.description}
                     </p>
-                    
+
                     {/* Price and Category */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-green-600">
@@ -377,7 +379,7 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
                         {service.category}
                       </span>
                     </div>
-                    
+
                     {/* Action Button */}
                     <button
                       onClick={() => handleServiceClick(service)}
@@ -395,13 +397,13 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
 
       {/* Map Controls - Hidden on mobile to save space */}
       <div className="absolute top-4 right-4 hidden md:flex flex-col space-y-2 z-10">
-        <button 
+        <button
           onClick={() => mapRef.current?.zoomIn()}
           className="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50"
         >
           <span className="text-lg font-bold text-gray-600">+</span>
         </button>
-        <button 
+        <button
           onClick={() => mapRef.current?.zoomOut()}
           className="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50"
         >
@@ -410,31 +412,30 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
       </div>
 
       {/* Map Search Bar - Hidden on mobile */}
-      <div className={`absolute top-4 left-4 right-16 z-10 hidden md:block ${locationError ? 'mt-16' : ''}`}>
+      {/* <div className={`absolute top-4 left-4 right-16 z-10 hidden md:block ${locationError ? 'mt-16' : ''}`}>
         <div className="bg-white rounded-lg shadow-md p-3">
           <form onSubmit={handleSearch}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={locationSearched}
+                onChange={(e) => setLocationSearched(e.target.value)}
                 placeholder="Buscar en tu ciudad..."
                 className="w-full pl-10 pr-4 py-2 border-0 focus:ring-0 text-sm"
               />
             </div>
           </form>
         </div>
-      </div>
+      </div> */}
 
       {/* Location Button */}
       <div className="absolute bottom-4 right-4 z-10">
-        <button 
+        <button
           onClick={handleLocationClick}
           disabled={locationLoading}
-          className={`w-12 h-12 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors ${
-            userLocation ? 'text-blue-600' : 'text-gray-600'
-          } ${locationLoading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`w-12 h-12 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors ${userLocation ? 'text-blue-600' : 'text-gray-600'
+            } ${locationLoading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           title={userLocation ? 'Ir a mi ubicación' : 'Obtener mi ubicación'}
         >
           {locationLoading ? (
@@ -456,7 +457,7 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
         </div>
       )}
 
-     
+
     </div>
   )
 }
