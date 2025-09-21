@@ -46,25 +46,6 @@ export async function signInWithEmail(email: string, password: string) {
   }
 }
 
-// Signup con email/password (opcional)
-export async function signUpWithEmail(email: string, password: string, userData?: any) {
-  try {
-    const { data, error } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        data: userData, // user_metadata
-        emailRedirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error signing up:', error);
-    throw error;
-  }
-}
 
 // Logout
 export async function signOut() {

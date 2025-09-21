@@ -22,10 +22,18 @@ interface ApiErrorResponse {
 }
 
 // Type guard para verificar si es una respuesta de error
-function isErrorResponse(response: any): response is ApiErrorResponse {
-  return response && typeof response.error === 'object' &&
-    typeof response.error.message === 'string' &&
-    typeof response.error.status === 'number';
+function isErrorResponse(response: unknown): response is ApiErrorResponse {
+  if (response === null || typeof response !== 'object') {
+    return false;
+  }
+  
+  const obj = response as Record<string, unknown>;
+  
+  return 'error' in obj &&
+    obj.error !== null &&
+    typeof obj.error === 'object' &&
+    typeof (obj.error as Record<string, unknown>).message === 'string' &&
+    typeof (obj.error as Record<string, unknown>).status === 'number';
 }
 
 // Custom error class para errores del API
