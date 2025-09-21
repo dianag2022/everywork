@@ -20,7 +20,7 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
 
         // Load Leaflet dynamically
         const loadLeaflet = async () => {
-            if (typeof window !== 'undefined' && !(window as any).L) {
+            if (typeof window !== 'undefined' && !window.L) {
                 // Load Leaflet CSS
                 const link = document.createElement('link')
                 link.rel = 'stylesheet'
@@ -31,15 +31,15 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
                 const script = document.createElement('script')
                 script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 
-                return new Promise((resolve) => {
-                    script.onload = resolve
+                return new Promise<void>((resolve) => {
+                    script.onload = () => resolve()
                     document.head.appendChild(script)
                 })
             }
         }
 
         loadLeaflet().then(() => {
-            const L = (window as any).L
+            const L = window.L
             if (!L) return
 
             // Clear previous map
@@ -49,7 +49,7 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
             const map = L.map('service-map', {
                 zoomControl: true,
                 scrollWheelZoom: false,
-            }).setView([service.latitude, service.longitude], 15)
+            }).setView([service.latitude!, service.longitude!], 15)
 
             // Add tile layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -57,7 +57,7 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
             }).addTo(map)
 
             // Add marker
-            L.marker([service.latitude, service.longitude])
+            L.marker([service.latitude!, service.longitude!])
                 .addTo(map)
                 .bindPopup(`
                     <div class="text-sm">
@@ -77,6 +77,7 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
             })
         })
     }, [service])
+
 
     if (!service.latitude || !service.longitude) {
         return (
