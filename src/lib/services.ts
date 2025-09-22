@@ -160,11 +160,7 @@ async function apiRequestWithMetadata<T>(
     }
 
     const successResponse = responseData as ApiSuccessResponse<T>;
-    return {
-      data: successResponse.data,
-      count: successResponse.count,
-      status: successResponse.status
-    };
+    return successResponse;
 
   } catch (error) {
     console.error(`API request failed for ${endpoint}:`, error);
@@ -308,7 +304,9 @@ export async function getServiceReviews(
     sortBy
   })
 
+
   return apiRequest<PaginatedReviews>(`/reviews/service/${serviceId}?${params}`)
+ 
 }
 
 // Get review statistics for a service

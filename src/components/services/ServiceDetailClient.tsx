@@ -2,11 +2,49 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Send, Camera, Trash2, ExternalLink, Monitor } from 'lucide-react'
+import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle } from 'lucide-react'
 import WhatsAppButton from '@/components/services/WhatsAppButton'
 import type { ServiceWithProvider } from '@/types/database'
+import type { CreateReviewData } from '@/types/review'
 import ServiceImageGallery from './ServiceImageGallery'
 import { useAuth } from '@/hooks/useAuth'
+import { createReview, getServiceReviews } from '@/lib/services'
+import type { PaginatedReviews, ReviewWithReviewer } from '@/types/review'
+
+// Leaflet type definitions
+interface LeafletMap {
+    setView(latlng: [number, number], zoom: number): LeafletMap
+    on(event: string, handler: () => void): void
+    scrollWheelZoom: {
+        enable(): void
+        disable(): void
+    }
+}
+
+interface LeafletMarker {
+    addTo(map: LeafletMap): LeafletMarker
+    bindPopup(content: string): LeafletMarker
+    openPopup(): LeafletMarker
+}
+
+interface LeafletTileLayer {
+    addTo(map: LeafletMap): LeafletTileLayer
+}
+
+interface LeafletStatic {
+    map(id: string, options: {
+        zoomControl: boolean
+        scrollWheelZoom: boolean
+    }): LeafletMap
+    tileLayer(url: string, options: { attribution: string }): LeafletTileLayer
+    marker(latlng: [number, number]): LeafletMarker
+}
+
+declare global {
+    interface Window {
+        L?: LeafletStatic
+    }
+}
 
 // OpenStreetMap Component
 function ServiceMap({ service }: { service: ServiceWithProvider }) {
@@ -78,7 +116,6 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
         })
     }, [service])
 
-
     if (!service.latitude || !service.longitude) {
         return (
             <div className="bg-gray-100 rounded-xl p-8 text-center">
@@ -119,18 +156,539 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
     )
 }
 
-// Main Service Detail Component
+// Review Form Component
+function ReviewForm({ serviceId, onReviewSubmitted }: { serviceId: string, onReviewSubmitted: () => void }) {
+    const { user } = useAuth()
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [showForm, setShowForm] = useState(false)
+    const [error, setError] = useState('')
+    const [success, setSuccess] = useState(false)
+
+    const [formData, setFormData] = useState({
+        rating: 0,
+        title: '',
+        comment: '',
+        images: [] as string[]
+    })
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!user) return
+
+        if (formData.rating === 0) {
+            setError('Por favor selecciona una calificación')
+            return
+        }
+
+        if (formData.title.trim().length < 3) {
+            setError('El título debe tener al menos 3 caracteres')
+            return
+        }
+
+        setIsSubmitting(true)
+        setError('')
+
+        try {
+            const reviewData: CreateReviewData = {
+                service_id: serviceId,
+                rating: formData.rating,
+                title: formData.title.trim(),
+                comment: formData.comment.trim(),
+                images: formData.images
+            }
+
+            await createReview(reviewData)
+            setSuccess(true)
+            setFormData({ rating: 0, title: '', comment: '', images: [] })
+            onReviewSubmitted()
+
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                setSuccess(false)
+                setShowForm(false)
+            }, 3000)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error al enviar la reseña')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleRatingClick = (rating: number) => {
+        setFormData(prev => ({ ...prev, rating }))
+        setError('')
+    }
+
+    if (!user) {
+        return (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                <User className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                <p className="text-blue-700 font-medium mb-2">Inicia sesión para escribir una reseña</p>
+                <p className="text-blue-600 text-sm">Comparte tu experiencia con otros usuarios</p>
+            </div>
+        )
+    }
+
+    if (success) {
+        return (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Star className="w-6 h-6 text-green-600" />
+                </div>
+                <p className="text-green-700 font-medium mb-2">¡Reseña enviada exitosamente!</p>
+                <p className="text-green-600 text-sm">Gracias por compartir tu experiencia</p>
+            </div>
+        )
+    }
+
+    if (!showForm) {
+        return (
+            <div className="text-center">
+                <button
+                    onClick={() => setShowForm(true)}
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                    <Plus className="w-5 h-5" />
+                    Escribir una reseña
+                </button>
+            </div>
+        )
+    }
+
+    return (
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Escribir una reseña</h3>
+                <button
+                    onClick={() => setShowForm(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Rating */}
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                        Calificación *
+                    </label>
+                    <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                                key={star}
+                                type="button"
+                                onClick={() => handleRatingClick(star)}
+                                className={`transition-all duration-200 hover:scale-110 ${star <= formData.rating ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'
+                                    }`}
+                            >
+                                <Star className="w-8 h-8 fill-current" />
+                            </button>
+                        ))}
+                        {formData.rating > 0 && (
+                            <span className="ml-2 text-sm font-medium text-gray-600">
+                                ({formData.rating} de 5 estrellas)
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                    <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Título de la reseña *
+                    </label>
+                    <input
+                        type="text"
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Resumen de tu experiencia..."
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                        maxLength={200}
+                        required
+                    />
+                    <div className="mt-1 text-xs text-gray-500 text-right">
+                        {formData.title.length}/200 caracteres
+                    </div>
+                </div>
+
+                {/* Comment */}
+                <div>
+                    <label htmlFor="comment" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Comentario (opcional)
+                    </label>
+                    <textarea
+                        id="comment"
+                        value={formData.comment}
+                        onChange={(e) => setFormData(prev => ({ ...prev, comment: e.target.value }))}
+                        placeholder="Comparte más detalles sobre tu experiencia..."
+                        rows={4}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white resize-none"
+                        maxLength={1000}
+                    />
+                    <div className="mt-1 text-xs text-gray-500 text-right">
+                        {formData.comment.length}/1000 caracteres
+                    </div>
+                </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        <p className="text-sm font-medium">{error}</p>
+                    </div>
+                )}
+
+                {/* Submit Button */}
+                <div className="flex gap-3 pt-2">
+                    <button
+                        type="button"
+                        onClick={() => setShowForm(false)}
+                        className="flex-1 px-6 py-3 border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-200"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || formData.rating === 0}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Enviando...
+                            </>
+                        ) : (
+                            <>
+                                <Send className="w-5 h-5" />
+                                Enviar reseña
+                            </>
+                        )}
+                    </button>
+                </div>
+            </form>
+        </div>)
+}
+// Reviews Display Component
+function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsKey: number }) {
+    const [reviews, setReviews] = useState<PaginatedReviews | null>(null)
+    const [allReviews, setAllReviews] = useState<ReviewWithReviewer[]>([])
+    const [loading, setLoading] = useState(true)
+    const [loadingMore, setLoadingMore] = useState(false)
+    const [error, setError] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'helpful'>('newest')
+    const limit = 5
+
+    const fetchReviews = async (page: number = 1, sort: typeof sortBy = 'newest', append: boolean = false) => {
+        try {
+            if (page === 1) {
+                setLoading(true)
+            } else {
+                setLoadingMore(true)
+            }
+            setError('')
+
+            const data = await getServiceReviews(serviceId, page, limit, sort)
+            console.log("reviews fetch data", data);
+            
+            // Handle both array and PaginatedReviews object formats
+            const reviewsArray = Array.isArray(data) ? data : data.data
+            const reviewsObject = data;
+            
+            setReviews(data)
+
+            if (append && page > 1) {
+                // Append new reviews to existing ones
+                setAllReviews(prev => [...prev, ...reviewsArray])
+            } else {
+                // Replace with new reviews (first load or sort change)
+                setAllReviews(reviewsArray)
+            }
+        } catch (err) {
+            setError('Error al cargar las reseñas')
+            console.error('Error fetching reviews:', err)
+        } finally {
+            console.log("reviews fetch", reviews, allReviews);
+            
+            setLoading(false)
+            setLoadingMore(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchReviews(1, sortBy, false)
+        setCurrentPage(1)
+    }, [serviceId, sortBy, reviewsKey])
+
+    const handleSortChange = (newSort: typeof sortBy) => {
+        setSortBy(newSort)
+        setCurrentPage(1)
+        setAllReviews([])
+    }
+
+    const handleLoadMore = () => {
+        const nextPage = currentPage + 1
+        setCurrentPage(nextPage)
+        fetchReviews(nextPage, sortBy, true)
+    }
+
+    const renderStars = (rating: number) => {
+        return [...Array(5)].map((_, i) => (
+            <Star
+                key={i}
+                className={`w-4 h-4 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+            />
+        ))
+    }
+
+    if (loading && !reviews) {
+        return (
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                        <div className="bg-gray-100 rounded-xl p-6 space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                                <div className="space-y-2 flex-1">
+                                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                                </div>
+                            </div>
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-3 bg-gray-200 rounded w-full"></div>
+                            <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                <p className="text-red-700 font-medium mb-2">Error al cargar las reseñas</p>
+                <button
+                    onClick={() => fetchReviews(currentPage, sortBy)}
+                    className="text-red-600 hover:text-red-700 font-medium text-sm"
+                >
+                    Intentar de nuevo
+                </button>
+            </div>
+        )
+    }
+
+    if (!loading && (!allReviews || allReviews.length === 0)) {
+        return (
+            <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-lg font-medium mb-2">Aún no hay reseñas</p>
+                <p className="text-gray-400 text-sm">Sé el primero en compartir tu experiencia</p>
+            </div>
+        )
+    }
+
+
+    return (
+        <div className="space-y-6">
+            {/* Reviews Stats */}
+            {reviews?.stats && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
+                    <div className="text-center md:text-left">
+                        <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                            <div className="text-4xl font-bold text-gray-900">{reviews?.stats.average_rating.toFixed(1)}</div>
+                            <div className="flex items-center">
+                                {renderStars(Math.round(reviews?.stats.average_rating))}
+                            </div>
+                        </div>
+                        <p className="text-gray-600 font-medium">
+                            Basado en {reviews?.stats.total_reviews} reseña{reviews?.stats.total_reviews !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                            const count = reviews?.stats?.total_reviews || 0
+                            const percentage = reviews?.stats && reviews?.stats.total_reviews > 0 ? (count / reviews?.stats.total_reviews) * 100 : 0
+
+                            return (
+                                <div key={star} className="flex items-center gap-3 text-sm">
+                                    <div className="flex items-center gap-1 w-12">
+                                        <span className="text-gray-600 font-medium">{star}</span>
+                                        <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                                    </div>
+                                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div
+                                            className="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full transition-all duration-500"
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-gray-500 text-xs w-8 text-right font-medium">
+                                        {count}
+                                    </span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Sort Controls */}
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                    Reseñas ({reviews?.stats?.total_reviews})
+                </h3>
+                <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value as typeof sortBy)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                    <option value="newest">Más recientes</option>
+                    <option value="oldest">Más antiguas</option>
+                    <option value="rating_high">Mejor calificadas</option>
+                    <option value="rating_low">Menor calificadas</option>
+                    <option value="helpful">Más útiles</option>
+                </select>
+            </div>
+
+            {/* Reviews List */}
+            <div className="space-y-4">
+                {allReviews.map((review: ReviewWithReviewer) => (
+                    <div key={review.id} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-start gap-4">
+                            {/* User Avatar */}
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-white font-semibold text-lg">
+                                    {review.reviewer?.full_name ? review.reviewer.full_name.charAt(0).toUpperCase() : 'U'}
+                                </span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900">
+                                            {review.reviewer?.full_name || 'Usuario anónimo'}
+                                        </h4>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <div className="flex items-center">
+                                                {renderStars(review.rating)}
+                                            </div>
+                                            <span className="text-sm text-gray-500">
+                                                {new Date(review.created_at).toLocaleDateString('es-CO', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Review Title */}
+                                <h5 className="font-semibold text-gray-900 mb-2">{review.title}</h5>
+
+                                {/* Review Comment */}
+                                {review.comment && (
+                                    <p className="text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">
+                                        {review.comment}
+                                    </p>
+                                )}
+
+                                {/* Review Images */}
+                                {review.images && review.images.length > 0 && (
+                                    <div className="flex gap-2 mb-3">
+                                        {review.images.slice(0, 3).map((image, index) => (
+                                            <div key={index} className="relative">
+                                                <Image
+                                                    src={image}
+                                                    alt={`Imagen de reseña ${index + 1}`}
+                                                    width={80}
+                                                    height={80}
+                                                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                                />
+                                                {/* {index === 2 && review.images.length > 3 && (
+                                                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                                                        <span className="text-white text-xs font-semibold">
+                                                            +{review.images.length - 3}
+                                                        </span>
+                                                    </div>
+                                                )} */}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Helpful Actions */}
+                                <div className="flex items-center gap-4 text-sm">
+                                    <button className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors">
+                                        <ThumbsUp className="w-4 h-4" />
+                                        Útil ({review.helpful_count || 0})
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Pagination */}
+            {/* {pagination && pagination.pages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || loading}
+                        className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                        Anterior
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                        {pagination && [...Array(Math.min(5, pagination.pages))].map((_, i) => {
+                            const pageNum = Math.max(1, Math.min(pagination.pages, currentPage - 2 + i))
+
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => handlePageChange(pageNum)}
+                                    className={`w-10 h-10 rounded-lg font-medium transition-colors ${currentPage === pageNum
+                                            ? 'bg-blue-600 text-white'
+                                            : 'border border-gray-200 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === (pagination?.pages || 1) || loading}
+                        className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Siguiente
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            )} */}
+        </div>
+    )
+}
 export default function ServiceDetailClient({ service }: { service: ServiceWithProvider }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [reviewsKey, setReviewsKey] = useState(0)
     console.log("service detail client", service);
 
     // Prepare images array
     const images = service.gallery && service.gallery.length > 0 ? service.gallery : (service.main_image ? [service.main_image] : [])
-
-
-    
-
 
     const nextImage = () => {
         setCurrentImageIndex((prev) => (prev + 1) % images.length)
@@ -143,6 +701,11 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
     const openModal = (index: number) => {
         setCurrentImageIndex(index)
         setIsModalOpen(true)
+    }
+
+    const handleReviewSubmitted = () => {
+        // Force re-render of reviews section if needed
+        setReviewsKey(prev => prev + 1)
     }
 
     const renderStars = (rating: number, size: string = "w-4 h-4") => {
@@ -191,8 +754,6 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                                     <div className="flex-1">
                                         <h1 className="text-xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">{service.title}</h1>
-
-
                                     </div>
 
                                     {/* Price display */}
@@ -243,7 +804,6 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                 )}
                             </div>
                         </div>
-
 
                         {/* Location Map */}
                         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
@@ -296,39 +856,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                         </div>
                                     )}
 
-                                    {/* Meta badges
-                                    <div className="flex flex-wrap items-center gap-3">
-                                            
-
-                                            {(service.city || service.state) && (
-                                                <div className="flex items-center bg-gradient-to-r from-green-50 to-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold border border-green-200">
-                                                    <MapPin className="w-4 h-4 mr-2" />
-                                                    {[service.city, service.state].filter(Boolean).join(', ')}
-                                                </div>
-                                            )}
-
-                                            {service.created_at && (
-                                                <div className="flex items-center bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold border border-purple-200">
-                                                    <Calendar className="w-4 h-4 mr-2" />
-                                                    {new Date(service.created_at).toLocaleDateString('es-CO', {
-                                                        day: 'numeric',
-                                                        month: 'short',
-                                                        year: 'numeric'
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div> */}
-
                                     {/* Location */}
-                                    {/* {(service.city || service.state) && (
-                                        <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                                            <span className="text-gray-600 font-medium">Ubicación</span>
-                                            <span className="text-gray-900 font-semibold text-right bg-white px-3 py-1 rounded-lg shadow-sm">
-                                                {service.city && service.state ? `${service.city}, ${service.state}` : 'No especificada'}
-                                            </span>
-                                        </div>
-                                    )} */}
-
                                     {(service.city || service.state) && (
                                         <div className="flex items-center bg-gradient-to-r from-green-50 to-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold border border-green-200">
                                             <MapPin className="w-4 h-4 mr-2" />
@@ -336,11 +864,9 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                         </div>
                                     )}
 
-
                                     {/* Publication Date */}
                                     {service.created_at && (
                                         <div className="flex items-center bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold border border-purple-200">
-
                                             <Calendar className="w-4 h-4 mr-2" />
                                             {new Date(service.created_at).toLocaleDateString('es-CO', {
                                                 day: 'numeric',
@@ -349,17 +875,6 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                             })}
                                         </div>
                                     )}
-
-                                    {/* {service.created_at && (
-                                        <div className="flex items-center bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold border border-purple-200">
-                                            <Calendar className="w-4 h-4 mr-2" />
-                                            {new Date(service.created_at).toLocaleDateString('es-CO', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            })}
-                                        </div>
-                                    )} */}
                                 </div>
                             </div>
                         </div>
@@ -375,8 +890,13 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                         </div>
                     </div>
 
-                  
+                    {/* Review Form */}
+                    <div className="mb-8">
+                        <ReviewForm serviceId={service.id} onReviewSubmitted={handleReviewSubmitted} />
+                    </div>
 
+                    {/* Reviews Display */}
+                    <ReviewsDisplay serviceId={service.id} reviewsKey={reviewsKey} />
                 </div>
 
                 {/* Modal for full-screen image viewing */}
