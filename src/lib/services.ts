@@ -305,8 +305,9 @@ export async function getServiceReviews(
   })
 
 
-  return apiRequestWithMetadata<PaginatedReviews>(`/reviews/service/${serviceId}?${params}`)
- 
+  const response = await apiRequestWithMetadata<PaginatedReviews>(`/reviews/service/${serviceId}?${params}`)
+  
+  return response.data 
 }
 
 // Get review statistics for a service
