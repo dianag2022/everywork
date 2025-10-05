@@ -373,7 +373,7 @@ function ReviewForm({ serviceId, onReviewSubmitted }: { serviceId: string, onRev
 }
 // Reviews Display Component
 function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsKey: number }) {
-    const [reviews, setReviews] = useState<{ data: T; count?: number; status: string } | null>(null)
+    const [reviews, setReviews] = useState<PaginatedReviews | null>(null)
     const [allReviews, setAllReviews] = useState<ReviewWithReviewer[]>([])
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)

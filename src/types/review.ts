@@ -61,12 +61,12 @@ export interface ReviewStats {
 export interface PaginatedReviews {
   success: boolean,
   data: ReviewWithReviewer[],
-  pagination: {
+  pagination?: {
     current_page: number,
     total_count: number,
     has_more: boolean,
   },
-  stats: {
+  stats?: {
     average_rating: number
     total_reviews: number
   }

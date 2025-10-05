@@ -297,7 +297,7 @@ export async function getServiceReviews(
   page: number = 1,
   limit: number = 10,
   sortBy: 'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'helpful' = 'newest'
-): Promise<{ data: T; count?: number; status: string }> {
+): Promise<PaginatedReviews> {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
@@ -305,7 +305,7 @@ export async function getServiceReviews(
   })
 
 
-  return apiRequestWithMetadata<{ data: T; count?: number; status: string }>(`/reviews/service/${serviceId}?${params}`)
+  return apiRequestWithMetadata<PaginatedReviews>(`/reviews/service/${serviceId}?${params}`)
  
 }
 
