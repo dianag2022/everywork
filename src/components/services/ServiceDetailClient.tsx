@@ -632,17 +632,17 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             )}
 
             {/* Reviews Stats */}
-            {reviews?.stats && (
+            {reviews?.stats && reviews.stats.average_rating !== undefined && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
                     <div className="text-center md:text-left">
                         <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                            <div className="text-4xl font-bold text-gray-900">{reviews?.stats.average_rating.toFixed(1)}</div>
+                            <div className="text-4xl font-bold text-gray-900">{reviews.stats.average_rating.toFixed(1)}</div>
                             <div className="flex items-center">
-                                {renderStars(Math.round(reviews?.stats.average_rating))}
+                                {renderStars(Math.round(reviews.stats.average_rating))}
                             </div>
                         </div>
                         <p className="text-gray-600 font-medium">
-                            Basado en {reviews?.stats.total_reviews} reseña{reviews?.stats.total_reviews !== 1 ? 's' : ''}
+                            Basado en {reviews.stats.total_reviews} reseña{reviews.stats.total_reviews !== 1 ? 's' : ''}
                         </p>
                     </div>
 
