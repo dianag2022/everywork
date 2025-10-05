@@ -59,7 +59,7 @@ export interface ReviewStats {
 }
 
 export interface PaginatedReviews {
-  success: boolean,
+  status: string,
   data: ReviewWithReviewer[],
   pagination?: {
     current_page: number,
