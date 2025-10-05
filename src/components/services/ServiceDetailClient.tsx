@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle } from 'lucide-react'
+import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Edit2 , Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle } from 'lucide-react'
 import WhatsAppButton from '@/components/services/WhatsAppButton'
 import type { ServiceWithProvider } from '@/types/database'
 import type { CreateReviewData } from '@/types/review'
 import ServiceImageGallery from './ServiceImageGallery'
 import { useAuth } from '@/hooks/useAuth'
-import { createReview, getServiceReviews } from '@/lib/services'
+import { createReview, getServiceReviews, updateReview, deleteReview } from '@/lib/services'
 import type { PaginatedReviews, ReviewWithReviewer } from '@/types/review'
+import { toast } from 'react-hot-toast' // Or your preferred toast library
 
 // Leaflet type definitions
 interface LeafletMap {
@@ -372,13 +373,24 @@ function ReviewForm({ serviceId, onReviewSubmitted }: { serviceId: string, onRev
 }
 // Reviews Display Component
 function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsKey: number }) {
-    const [reviews, setReviews] = useState<PaginatedReviews | null>(null)
+    const [reviews, setReviews] = useState<{ data: T; count?: number; status: string } | null>(null)
     const [allReviews, setAllReviews] = useState<ReviewWithReviewer[]>([])
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
     const [error, setError] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'helpful'>('newest')
+    const [editingReviewId, setEditingReviewId] = useState<string | null>(null)
+    const [editFormData, setEditFormData] = useState<{
+        rating: number
+        title: string
+        comment: string
+    }>({ rating: 5, title: '', comment: '' })
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [reviewToDelete, setReviewToDelete] = useState<string | null>(null)
+    const { user } = useAuth()
     const limit = 5
 
     const fetchReviews = async (page: number = 1, sort: typeof sortBy = 'newest', append: boolean = false) => {
@@ -391,27 +403,20 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             setError('')
 
             const data = await getServiceReviews(serviceId, page, limit, sort)
-            console.log("reviews fetch data", data);
             
-            // Handle both array and PaginatedReviews object formats
             const reviewsArray = Array.isArray(data) ? data : data.data
-            const reviewsObject = data;
             
             setReviews(data)
 
             if (append && page > 1) {
-                // Append new reviews to existing ones
                 setAllReviews(prev => [...prev, ...reviewsArray])
             } else {
-                // Replace with new reviews (first load or sort change)
                 setAllReviews(reviewsArray)
             }
         } catch (err) {
             setError('Error al cargar las reseñas')
             console.error('Error fetching reviews:', err)
         } finally {
-            console.log("reviews fetch", reviews, allReviews);
-            
             setLoading(false)
             setLoadingMore(false)
         }
@@ -434,12 +439,115 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
         fetchReviews(nextPage, sortBy, true)
     }
 
+    const handleEditClick = (review: ReviewWithReviewer) => {
+        setEditingReviewId(review.id)
+        setEditFormData({
+            rating: review.rating,
+            title: review.title,
+            comment: review.comment || ''
+        })
+    }
+
+    const handleCancelEdit = () => {
+        setEditingReviewId(null)
+        setEditFormData({ rating: 5, title: '', comment: '' })
+    }
+
+    const handleUpdateReview = async (reviewId: string) => {
+        try {
+            setIsSubmitting(true)
+            
+            await updateReview(reviewId, editFormData)
+            
+            setAllReviews(prev => prev.map(review => 
+                review.id === reviewId 
+                    ? { ...review, ...editFormData, updated_at: new Date().toISOString() }
+                    : review
+            ))
+            
+            setEditingReviewId(null)
+            setEditFormData({ rating: 5, title: '', comment: '' })
+            
+            toast.success('Reseña actualizada exitosamente')
+        } catch (err) {
+            console.error('Error updating review:', err)
+            toast.error('Error al actualizar la reseña')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleDeleteClick = (reviewId: string) => {
+        setReviewToDelete(reviewId)
+        setShowDeleteConfirm(true)
+    }
+
+    const handleCancelDelete = () => {
+        setReviewToDelete(null)
+        setShowDeleteConfirm(false)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!reviewToDelete) return
+
+        try {
+            setDeletingReviewId(reviewToDelete)
+            
+            await deleteReview(reviewToDelete)
+            
+            setAllReviews(prev => prev.filter(review => review.id !== reviewToDelete))
+            
+            if (reviews?.stats) {
+                setReviews(prev => prev ? {
+                    ...prev,
+                    stats: {
+                        ...prev.stats,
+                        total_reviews: prev.stats.total_reviews - 1
+                    }
+                } : null)
+            }
+            
+            setShowDeleteConfirm(false)
+            setReviewToDelete(null)
+            
+            toast.success('Reseña eliminada exitosamente')
+        } catch (err) {
+            console.error('Error deleting review:', err)
+            toast.error('Error al eliminar la reseña')
+        } finally {
+            setDeletingReviewId(null)
+        }
+    }
+
+    const isOwnReview = (reviewerId: string) => {
+        return user?.id === reviewerId
+    }
+
     const renderStars = (rating: number) => {
         return [...Array(5)].map((_, i) => (
             <Star
                 key={i}
                 className={`w-4 h-4 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
             />
+        ))
+    }
+
+    const renderEditableStars = (currentRating: number, onChange: (rating: number) => void) => {
+        return [...Array(5)].map((_, i) => (
+            <button
+                key={i}
+                type="button"
+                onClick={() => onChange(i + 1)}
+                className="focus:outline-none"
+            >
+                <Star
+                    className={`w-6 h-6 transition-colors ${
+                        i < currentRating 
+                            ? 'text-yellow-400 fill-current' 
+                            : 'text-gray-300 hover:text-yellow-300'
+                    }`}
+                />
+            </button>
         ))
     }
 
@@ -493,9 +601,43 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
         )
     }
 
-
     return (
         <div className="space-y-6">
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <AlertCircle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                ¿Eliminar reseña?
+                            </h3>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta reseña?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={handleCancelDelete}
+                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                disabled={deletingReviewId !== null}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={deletingReviewId !== null}
+                            >
+                                {deletingReviewId ? 'Eliminando...' : 'Eliminar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Reviews Stats */}
             {reviews?.stats && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
@@ -541,7 +683,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             {/* Sort Controls */}
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
-                    Reseñas ({reviews?.stats?.total_reviews})
+                    Reseñas ({reviews?.pagination?.total_count || 0})
                 </h3>
                 <select
                     value={sortBy}
@@ -558,126 +700,180 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
 
             {/* Reviews List */}
             <div className="space-y-4">
-                {allReviews.map((review: ReviewWithReviewer) => (
-                    <div key={review.id} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-200">
-                        <div className="flex items-start gap-4">
-                            {/* User Avatar */}
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-white font-semibold text-lg">
-                                    {review.reviewer?.full_name ? review.reviewer.full_name.charAt(0).toUpperCase() : 'U'}
-                                </span>
-                            </div>
+                {allReviews.map((review: ReviewWithReviewer) => {
+                    const isEditing = editingReviewId === review.id
+                    const isOwn = isOwnReview(review.reviewer_id)
 
-                            <div className="flex-1 min-w-0">
-                                {/* Header */}
-                                <div className="flex items-center justify-between mb-2">
+                    return (
+                        <div 
+                            key={review.id} 
+                            className={`bg-white border rounded-2xl p-6 hover:shadow-md transition-shadow duration-200 ${
+                                isOwn ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
+                            }`}
+                        >
+                            {isEditing ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-semibold text-gray-900">Editar reseña</h4>
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
                                     <div>
-                                        <h4 className="font-semibold text-gray-900">
-                                            {review.reviewer?.full_name || 'Usuario anónimo'}
-                                        </h4>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className="flex items-center">
-                                                {renderStars(review.rating)}
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Calificación
+                                        </label>
+                                        <div className="flex items-center gap-1">
+                                            {renderEditableStars(editFormData.rating, (rating) => 
+                                                setEditFormData(prev => ({ ...prev, rating }))
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Título
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.title}
+                                            onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            maxLength={200}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Comentario (opcional)
+                                        </label>
+                                        <textarea
+                                            value={editFormData.comment}
+                                            onChange={(e) => setEditFormData(prev => ({ ...prev, comment: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                            rows={4}
+                                            maxLength={1000}
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-3 justify-end">
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                            disabled={isSubmitting}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={() => handleUpdateReview(review.id)}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={isSubmitting || !editFormData.title.trim()}
+                                        >
+                                            {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <span className="text-white font-semibold text-lg">
+                                            {review.reviewer?.full_name ? review.reviewer.full_name.charAt(0).toUpperCase() : 'U'}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-semibold text-gray-900">
+                                                        {review.reviewer?.email?.split('@')[0] || 'Usuario anónimo'}
+                                                    </h4>
+                                                    {isOwn && (
+                                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                                                            Tu reseña
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <div className="flex items-center">
+                                                        {renderStars(review.rating)}
+                                                    </div>
+                                                    <span className="text-sm text-gray-500">
+                                                        {new Date(review.created_at).toLocaleDateString('es-CO', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </span>
+                                                    {review.updated_at !== review.created_at && (
+                                                        <span className="text-xs text-gray-400">(editada)</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <span className="text-sm text-gray-500">
-                                                {new Date(review.created_at).toLocaleDateString('es-CO', {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                    year: 'numeric'
-                                                })}
-                                            </span>
+                                            
+                                            {isOwn && (
+                                                <div className="flex gap-2 ml-2">
+                                                    <button
+                                                        onClick={() => handleEditClick(review)}
+                                                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteClick(review.id)}
+                                                        className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 transition-colors"
+                                                        disabled={deletingReviewId === review.id}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <h5 className="font-semibold text-gray-900 mb-2">{review.title}</h5>
+
+                                        {review.comment && (
+                                            <p className="text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">
+                                                {review.comment}
+                                            </p>
+                                        )}
+
+                                        {review.images && review.images.length > 0 && (
+                                            <div className="flex gap-2 mb-3">
+                                                {review.images.slice(0, 3).map((image, index) => (
+                                                    <div key={index} className="relative">
+                                                        <Image
+                                                            src={image}
+                                                            alt={`Imagen de reseña ${index + 1}`}
+                                                            width={80}
+                                                            height={80}
+                                                            className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-4 text-sm">
+                                            <button className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors">
+                                                <ThumbsUp className="w-4 h-4" />
+                                                Útil ({review.helpful_count || 0})
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Review Title */}
-                                <h5 className="font-semibold text-gray-900 mb-2">{review.title}</h5>
-
-                                {/* Review Comment */}
-                                {review.comment && (
-                                    <p className="text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">
-                                        {review.comment}
-                                    </p>
-                                )}
-
-                                {/* Review Images */}
-                                {review.images && review.images.length > 0 && (
-                                    <div className="flex gap-2 mb-3">
-                                        {review.images.slice(0, 3).map((image, index) => (
-                                            <div key={index} className="relative">
-                                                <Image
-                                                    src={image}
-                                                    alt={`Imagen de reseña ${index + 1}`}
-                                                    width={80}
-                                                    height={80}
-                                                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                                                />
-                                                {/* {index === 2 && review.images.length > 3 && (
-                                                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                                                        <span className="text-white text-xs font-semibold">
-                                                            +{review.images.length - 3}
-                                                        </span>
-                                                    </div>
-                                                )} */}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Helpful Actions */}
-                                <div className="flex items-center gap-4 text-sm">
-                                    <button className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors">
-                                        <ThumbsUp className="w-4 h-4" />
-                                        Útil ({review.helpful_count || 0})
-                                    </button>
-                                </div>
-                            </div>
+                            )}
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
-
-            {/* Pagination */}
-            {/* {pagination && pagination.pages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                    <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || loading}
-                        className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                        Anterior
-                    </button>
-
-                    <div className="flex items-center gap-1">
-                        {pagination && [...Array(Math.min(5, pagination.pages))].map((_, i) => {
-                            const pageNum = Math.max(1, Math.min(pagination.pages, currentPage - 2 + i))
-
-                            return (
-                                <button
-                                    key={pageNum}
-                                    onClick={() => handlePageChange(pageNum)}
-                                    className={`w-10 h-10 rounded-lg font-medium transition-colors ${currentPage === pageNum
-                                            ? 'bg-blue-600 text-white'
-                                            : 'border border-gray-200 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    {pageNum}
-                                </button>
-                            )
-                        })}
-                    </div>
-
-                    <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === (pagination?.pages || 1) || loading}
-                        className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        Siguiente
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
-            )} */}
         </div>
     )
 }

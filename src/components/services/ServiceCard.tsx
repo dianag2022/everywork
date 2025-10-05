@@ -44,32 +44,6 @@ export function ServiceCard({ service, onFavorite, isFavorite = false }: Service
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
 
-          {/* Etiqueta de favorito */}
-          <div className="absolute top-3 left-3">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium text-gray-700 flex items-center gap-1">
-              <HeartIcon className="w-3 h-3 text-red-500" />
-              <span>Favorito</span>
-            </div>
-          </div>
-
-          {/* Botón de favorito */}
-          <button
-            onClick={handleFavoriteClick}
-            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
-          >
-            {isFavorite ? (
-              <HeartIcon className="w-5 h-5 text-red-500" />
-            ) : (
-              <HeartOutlineIcon className="w-5 h-5 text-gray-600" />
-            )}
-          </button>
-
-          {/* Indicadores de imagen (puntos) */}
-          <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1">
-            <div className="w-2 h-2 bg-white rounded-full"></div>
-            <div className="w-2 h-2 bg-white/50 rounded-full"></div>
-            <div className="w-2 h-2 bg-white/50 rounded-full"></div>
-          </div>
         </div>
 
         {/* Información del servicio */}
