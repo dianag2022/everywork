@@ -67,7 +67,7 @@ export interface PaginatedReviews {
     has_more: boolean,
   },
   stats?: {
-    average_rating: number
+    average_rating?: number
     total_reviews: number
   }
 }
