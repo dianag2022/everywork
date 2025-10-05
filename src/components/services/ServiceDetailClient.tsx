@@ -497,15 +497,8 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             
             setAllReviews(prev => prev.filter(review => review.id !== reviewToDelete))
             
-            if (reviews?.stats) {
-                setReviews(prev => prev ? {
-                    ...prev,
-                    stats: {
-                        ...prev.stats,
-                        total_reviews: prev.stats.total_reviews - 1
-                    }
-                } : null)
-            }
+            // Refetch reviews to get updated stats
+            fetchReviews(1, sortBy, false)
             
             setShowDeleteConfirm(false)
             setReviewToDelete(null)
