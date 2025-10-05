@@ -8,9 +8,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://everyworkbacken
 
 // Respuesta exitosa del API
 interface ApiSuccessResponse<T> {
-  success: boolean;
+  success?: boolean;
   data: T;
   count?: number;
+  status?: string;
 }
 
 // Respuesta de error del API
