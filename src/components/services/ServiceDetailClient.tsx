@@ -870,7 +870,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             </div>
 
             {/* Load More Button */}
-            {reviews?.pagination && reviews.pagination.current_page < reviews.pagination.total_pages && (
+            {reviews?.pagination && reviews.pagination.has_more && (
                 <div className="text-center pt-4">
                     <button
                         onClick={handleLoadMore}
