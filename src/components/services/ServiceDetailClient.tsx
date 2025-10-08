@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Edit2 , Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle } from 'lucide-react'
+import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Edit2, Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle } from 'lucide-react'
 import WhatsAppButton from '@/components/services/WhatsAppButton'
 import type { ServiceWithProvider } from '@/types/database'
 import type { CreateReviewData } from '@/types/review'
@@ -134,12 +134,12 @@ function ServiceMap({ service }: { service: ServiceWithProvider }) {
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Ubicación</h3>
                 <a
-                    href={`https://www.openstreetmap.org/?mlat=${service.latitude}&mlon=${service.longitude}&zoom=15`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${service.latitude},${service.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
                 >
-                    Ver en Mapa <ExternalLink className="w-3 h-3" />
+                    Ver en Google Maps <ExternalLink className="w-3 h-3" />
                 </a>
             </div>
             <div
@@ -403,9 +403,9 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             setError('')
 
             const data = await getServiceReviews(serviceId, page, limit, sort)
-            
+
             const reviewsArray = Array.isArray(data) ? data : data.data
-            
+
             setReviews(data)
 
             if (append && page > 1) {
@@ -456,18 +456,18 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
     const handleUpdateReview = async (reviewId: string) => {
         try {
             setIsSubmitting(true)
-            
+
             await updateReview(reviewId, editFormData)
-            
-            setAllReviews(prev => prev.map(review => 
-                review.id === reviewId 
+
+            setAllReviews(prev => prev.map(review =>
+                review.id === reviewId
                     ? { ...review, ...editFormData, updated_at: new Date().toISOString() }
                     : review
             ))
-            
+
             setEditingReviewId(null)
             setEditFormData({ rating: 5, title: '', comment: '' })
-            
+
             toast.success('Reseña actualizada exitosamente')
         } catch (err) {
             console.error('Error updating review:', err)
@@ -492,17 +492,17 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
 
         try {
             setDeletingReviewId(reviewToDelete)
-            
+
             await deleteReview(reviewToDelete)
-            
+
             setAllReviews(prev => prev.filter(review => review.id !== reviewToDelete))
-            
+
             // Refetch reviews to get updated stats
             fetchReviews(1, sortBy, false)
-            
+
             setShowDeleteConfirm(false)
             setReviewToDelete(null)
-            
+
             toast.success('Reseña eliminada exitosamente')
         } catch (err) {
             console.error('Error deleting review:', err)
@@ -534,11 +534,10 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                 className="focus:outline-none"
             >
                 <Star
-                    className={`w-6 h-6 transition-colors ${
-                        i < currentRating 
-                            ? 'text-yellow-400 fill-current' 
-                            : 'text-gray-300 hover:text-yellow-300'
-                    }`}
+                    className={`w-6 h-6 transition-colors ${i < currentRating
+                        ? 'text-yellow-400 fill-current'
+                        : 'text-gray-300 hover:text-yellow-300'
+                        }`}
                 />
             </button>
         ))
@@ -601,7 +600,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                                 <AlertCircle className="w-6 h-6 text-red-600" />
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900">
@@ -611,17 +610,17 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                         <p className="text-gray-600 mb-6">
                             Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta reseña?
                         </p>
-                        <div className="flex gap-3 justify-end">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
                             <button
                                 onClick={handleCancelDelete}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors order-2 sm:order-1"
                                 disabled={deletingReviewId !== null}
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleConfirmDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
                                 disabled={deletingReviewId !== null}
                             >
                                 {deletingReviewId ? 'Eliminando...' : 'Eliminar'}
@@ -633,15 +632,15 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
 
             {/* Reviews Stats */}
             {reviews?.stats && reviews.stats.average_rating !== undefined && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
                     <div className="text-center md:text-left">
                         <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                            <div className="text-4xl font-bold text-gray-900">{reviews.stats.average_rating.toFixed(1)}</div>
+                            <div className="text-3xl sm:text-4xl font-bold text-gray-900">{reviews.stats.average_rating.toFixed(1)}</div>
                             <div className="flex items-center">
                                 {renderStars(Math.round(reviews.stats.average_rating))}
                             </div>
                         </div>
-                        <p className="text-gray-600 font-medium">
+                        <p className="text-sm sm:text-base text-gray-600 font-medium">
                             Basado en {reviews.stats.total_reviews} reseña{reviews.stats.total_reviews !== 1 ? 's' : ''}
                         </p>
                     </div>
@@ -652,8 +651,8 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                             const percentage = reviews?.stats && reviews?.stats.total_reviews > 0 ? (count / reviews?.stats.total_reviews) * 100 : 0
 
                             return (
-                                <div key={star} className="flex items-center gap-3 text-sm">
-                                    <div className="flex items-center gap-1 w-12">
+                                <div key={star} className="flex items-center gap-2 sm:gap-3 text-sm">
+                                    <div className="flex items-center gap-1 w-10 sm:w-12">
                                         <span className="text-gray-600 font-medium">{star}</span>
                                         <Star className="w-3 h-3 text-yellow-400 fill-current" />
                                     </div>
@@ -663,7 +662,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                                             style={{ width: `${percentage}%` }}
                                         />
                                     </div>
-                                    <span className="text-gray-500 text-xs w-8 text-right font-medium">
+                                    <span className="text-gray-500 text-xs w-6 sm:w-8 text-right font-medium">
                                         {count}
                                     </span>
                                 </div>
@@ -674,14 +673,14 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             )}
 
             {/* Sort Controls */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     Reseñas ({reviews?.pagination?.total_count || 0})
                 </h3>
                 <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value as typeof sortBy)}
-                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
                     <option value="newest">Más recientes</option>
                     <option value="oldest">Más antiguas</option>
@@ -698,16 +697,15 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                     const isOwn = isOwnReview(review.reviewer_id)
 
                     return (
-                        <div 
-                            key={review.id} 
-                            className={`bg-white border rounded-2xl p-6 hover:shadow-md transition-shadow duration-200 ${
-                                isOwn ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
-                            }`}
+                        <div
+                            key={review.id}
+                            className={`bg-white border rounded-2xl p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isOwn ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
+                                }`}
                         >
                             {isEditing ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="font-semibold text-gray-900">Editar reseña</h4>
+                                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base">Editar reseña</h4>
                                         <button
                                             onClick={handleCancelEdit}
                                             className="text-gray-500 hover:text-gray-700"
@@ -721,7 +719,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                                             Calificación
                                         </label>
                                         <div className="flex items-center gap-1">
-                                            {renderEditableStars(editFormData.rating, (rating) => 
+                                            {renderEditableStars(editFormData.rating, (rating) =>
                                                 setEditFormData(prev => ({ ...prev, rating }))
                                             )}
                                         </div>
@@ -735,7 +733,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                                             type="text"
                                             value={editFormData.title}
                                             onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                             maxLength={200}
                                             required
                                         />
@@ -748,23 +746,23 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                                         <textarea
                                             value={editFormData.comment}
                                             onChange={(e) => setEditFormData(prev => ({ ...prev, comment: e.target.value }))}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                            className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
                                             rows={4}
                                             maxLength={1000}
                                         />
                                     </div>
 
-                                    <div className="flex gap-3 justify-end">
+                                    <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
                                         <button
                                             onClick={handleCancelEdit}
-                                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm order-2 sm:order-1"
                                             disabled={isSubmitting}
                                         >
                                             Cancelar
                                         </button>
                                         <button
                                             onClick={() => handleUpdateReview(review.id)}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm order-1 sm:order-2"
                                             disabled={isSubmitting || !editFormData.title.trim()}
                                         >
                                             {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
@@ -772,101 +770,117 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <span className="text-white font-semibold text-lg">
-                                            {review.reviewer?.full_name ? review.reviewer.full_name.charAt(0).toUpperCase() : 'U'}
-                                        </span>
-                                    </div>
+                                <>
+                                    <div className="flex items-start gap-3 sm:gap-4">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span className="text-white font-semibold text-base sm:text-lg">
+                                                {review.reviewer?.full_name ? review.reviewer.full_name.charAt(0).toUpperCase() : 'U'}
+                                            </span>
+                                        </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="font-semibold text-gray-900">
-                                                        {review.reviewer?.email?.split('@')[0] || 'Usuario anónimo'}
-                                                    </h4>
-                                                    {isOwn && (
-                                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                                                            Tu reseña
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <div className="flex items-center">
-                                                        {renderStars(review.rating)}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                                                            {review.reviewer?.email?.split('@')[0] || 'Usuario anónimo'}
+                                                        </h4>
+                                                        {isOwn && (
+                                                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 sm:py-1 rounded-full font-medium whitespace-nowrap">
+                                                                Tu reseña
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <span className="text-sm text-gray-500">
-                                                        {new Date(review.created_at).toLocaleDateString('es-CO', {
-                                                            day: 'numeric',
-                                                            month: 'short',
-                                                            year: 'numeric'
-                                                        })}
-                                                    </span>
-                                                    {review.updated_at !== review.created_at && (
-                                                        <span className="text-xs text-gray-400">(editada)</span>
-                                                    )}
+                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                        <div className="flex items-center">
+                                                            {renderStars(review.rating)}
+                                                        </div>
+                                                        <span className="text-xs sm:text-sm text-gray-500">
+                                                            {new Date(review.created_at).toLocaleDateString('es-CO', {
+                                                                day: 'numeric',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </span>
+                                                        {review.updated_at !== review.created_at && (
+                                                            <span className="text-xs text-gray-400">(editada)</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            
-                                            {isOwn && (
-                                                <div className="flex gap-2 ml-2">
-                                                    <button
-                                                        onClick={() => handleEditClick(review)}
-                                                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                        Editar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(review.id)}
-                                                        className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 transition-colors"
-                                                        disabled={deletingReviewId === review.id}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                        Eliminar
-                                                    </button>
+
+                                            <h5 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">{review.title}</h5>
+
+                                            {review.comment && (
+                                                <p className="text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap text-sm sm:text-base">
+                                                    {review.comment}
+                                                </p>
+                                            )}
+
+                                            {review.images && review.images.length > 0 && (
+                                                <div className="flex gap-2 mb-3">
+                                                    {review.images.slice(0, 3).map((image, index) => (
+                                                        <div key={index} className="relative">
+                                                            <Image
+                                                                src={image}
+                                                                alt={`Imagen de reseña ${index + 1}`}
+                                                                width={80}
+                                                                height={80}
+                                                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200"
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
-                                        </div>
 
-                                        <h5 className="font-semibold text-gray-900 mb-2">{review.title}</h5>
-
-                                        {review.comment && (
-                                            <p className="text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">
-                                                {review.comment}
-                                            </p>
-                                        )}
-
-                                        {review.images && review.images.length > 0 && (
-                                            <div className="flex gap-2 mb-3">
-                                                {review.images.slice(0, 3).map((image, index) => (
-                                                    <div key={index} className="relative">
-                                                        <Image
-                                                            src={image}
-                                                            alt={`Imagen de reseña ${index + 1}`}
-                                                            width={80}
-                                                            height={80}
-                                                            className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                                                        />
-                                                    </div>
-                                                ))}
+                                            <div className="flex items-center gap-4 text-xs sm:text-sm">
+                                                <button className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors">
+                                                    <ThumbsUp className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    <span className="hidden sm:inline">Útil</span> ({review.helpful_count || 0})
+                                                </button>
                                             </div>
-                                        )}
-
-                                        <div className="flex items-center gap-4 text-sm">
-                                            <button className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors">
-                                                <ThumbsUp className="w-4 h-4" />
-                                                Útil ({review.helpful_count || 0})
-                                            </button>
                                         </div>
                                     </div>
-                                </div>
+
+                                    {/* Action buttons moved below for mobile */}
+                                    {isOwn && (
+                                        <div className="flex gap-2 sm:gap-3 mt-4 pt-4 border-t border-gray-200">
+                                            <button
+                                                onClick={() => handleEditClick(review)}
+                                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs sm:text-sm text-blue-600 hover:text-blue-700 transition-colors py-2 px-3 sm:px-4 bg-blue-50 hover:bg-blue-100 rounded-lg"
+                                            >
+                                                <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                Editar
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(review.id)}
+                                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs sm:text-sm text-red-600 hover:text-red-700 transition-colors py-2 px-3 sm:px-4 bg-red-50 hover:bg-red-100 rounded-lg"
+                                                disabled={deletingReviewId === review.id}
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )
                 })}
             </div>
+
+            {/* Load More Button */}
+            {reviews?.pagination && reviews.pagination.current_page < reviews.pagination.total_pages && (
+                <div className="text-center pt-4">
+                    <button
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                    >
+                        {loadingMore ? 'Cargando...' : 'Cargar más reseñas'}
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
@@ -1049,7 +1063,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                     {(service.city || service.state) && (
                                         <div className="flex items-center bg-gradient-to-r from-green-50 to-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold border border-green-200">
                                             <MapPin className="w-4 h-4 mr-2" />
-                                            {service.city && service.state ? [service.city, service.state].filter(Boolean).join(', ') : 'No especificada'}
+                                            {service.city && service.state ? [service.city, service.state].filter(Boolean).join(', ') : `${service.address?.split(',')[1]} - ${service.address?.split(',')[3]}`}
                                         </div>
                                     )}
 
@@ -1071,16 +1085,18 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                 </div>
 
                 {/* Reviews Section */}
-                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
-                    <div className="flex items-center justify-between mb-8">
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-8">
+                    <div className="flex items-center justify-between mb-6 sm:mb-8">
                         <div className="flex items-center">
-                            <div className="w-1 h-8 bg-gradient-to-b from-yellow-500 to-orange-600 rounded-full mr-4"></div>
-                            <h2 className="text-3xl font-bold text-gray-900">Reseñas y calificaciones</h2>
+                            <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-yellow-500 to-orange-600 rounded-full mr-3 sm:mr-4"></div>
+                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                                Reseñas y calificaciones
+                            </h2>
                         </div>
                     </div>
 
                     {/* Review Form */}
-                    <div className="mb-8">
+                    <div className="mb-6 sm:mb-8">
                         <ReviewForm serviceId={service.id} onReviewSubmitted={handleReviewSubmitted} />
                     </div>
 
@@ -1089,7 +1105,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                 </div>
 
                 {/* Modal for full-screen image viewing */}
-                {isModalOpen && (
+                {/* {isModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4">
                         <div className="relative max-w-6xl max-h-full">
                             <button
@@ -1127,7 +1143,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                             </div>
                         </div>
                     </div>
-                )}
+                )} */}
             </div>
         </div>
     )

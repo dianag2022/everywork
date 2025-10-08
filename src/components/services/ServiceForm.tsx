@@ -8,6 +8,7 @@ import { uploadServiceImages } from '@/lib/storage';
 import { X, Upload, Image as ImageIcon, Star, Phone, MapPin, DollarSign, Tag, FileText, Camera } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { LocationInput } from '@/components/forms/LocationInput';
+import { SearchableDropdown } from '@/components/forms/SearchableDropdown';
 import { ServiceLocation } from '@/types/database';
 import Image from 'next/image';
 
@@ -85,7 +86,7 @@ export default function ServiceForm() {
       if (imageToRemove) {
         URL.revokeObjectURL(imageToRemove.preview); // Clean up memory
       }
-      
+
       const filtered = prev.filter(img => img.id !== id);
       // If we removed the main image, set the first one as main
       if (mainImageIndex >= filtered.length && filtered.length > 0) {
@@ -242,7 +243,7 @@ export default function ServiceForm() {
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           <form onSubmit={handleSubmit} className="p-8 space-y-8">
-            
+
             {/* Service Basic Info */}
             <div className="space-y-6">
               <div className="border-b border-gray-200 pb-4">
@@ -342,29 +343,25 @@ export default function ServiceForm() {
               <div
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
-                className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all duration-200 ${
-                  isLoading || images.length >= 5
+                className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all duration-200 ${isLoading || images.length >= 5
                     ? 'bg-gray-50 border-gray-300 cursor-not-allowed'
                     : 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-300 hover:border-purple-500 cursor-pointer hover:bg-gradient-to-br hover:from-purple-100 hover:to-blue-100'
-                }`}
+                  }`}
               >
-                <Upload className={`w-12 h-12 mb-4 ${
-                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-purple-500'
-                }`} />
-                <p className={`text-lg font-medium mb-2 ${
-                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-700'
-                }`}>
-                  {images.length >= 5 
-                    ? 'Límite máximo de imágenes alcanzado' 
+                <Upload className={`w-12 h-12 mb-4 ${isLoading || images.length >= 5 ? 'text-gray-400' : 'text-purple-500'
+                  }`} />
+                <p className={`text-lg font-medium mb-2 ${isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-700'
+                  }`}>
+                  {images.length >= 5
+                    ? 'Límite máximo de imágenes alcanzado'
                     : 'Arrastra y suelta imágenes aquí'
                   }
                 </p>
-                <p className={`text-sm ${
-                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-500'
-                }`}>
+                <p className={`text-sm ${isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
                   o haz clic para seleccionar archivos
                 </p>
-                
+
                 {/* Hidden file input */}
                 <input
                   type="file"
@@ -375,7 +372,7 @@ export default function ServiceForm() {
                   className="hidden"
                   disabled={isLoading || images.length >= 5}
                 />
-                
+
                 {/* Clickable label button */}
                 {images.length < 5 && !isLoading && (
                   <label
@@ -385,7 +382,7 @@ export default function ServiceForm() {
                     Seleccionar Imágenes
                   </label>
                 )}
-                
+
                 <div className="flex items-center mt-4 space-x-4 text-xs text-gray-500">
                   <span>PNG, JPG, GIF hasta 5MB</span>
                   <span>•</span>
@@ -393,7 +390,7 @@ export default function ServiceForm() {
                     {images.length}/5 imágenes
                   </span>
                 </div>
-                
+
                 {/* Loading state */}
                 {isLoading && (
                   <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-xl">
@@ -422,7 +419,7 @@ export default function ServiceForm() {
                           }}
                         />
                       </div>
-                      
+
                       {/* Remove button */}
                       <button
                         type="button"
@@ -433,7 +430,7 @@ export default function ServiceForm() {
                       >
                         <X className="w-4 h-4" />
                       </button>
-                      
+
                       {/* Main image indicator and setter */}
                       <div className="absolute bottom-2 left-2 flex items-center gap-1">
                         {mainImageIndex === index ? (
@@ -491,7 +488,7 @@ export default function ServiceForm() {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label htmlFor="max_price" className="block text-sm font-medium text-gray-700 mb-2">
                     Precio Máximo *
@@ -515,7 +512,13 @@ export default function ServiceForm() {
                 </div>
               </div>
 
-              <div>
+
+              <SearchableDropdown categories={categories}
+                category={category}
+                setCategory={setCategory}
+                categoriesLoading={categoriesLoading}
+                categoriesError={categoriesError} />
+              {/* <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                   Categoría *
                 </label>
@@ -548,7 +551,7 @@ export default function ServiceForm() {
                     Error al cargar categorías: {categoriesError}
                   </p>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* Progress Bar */}
