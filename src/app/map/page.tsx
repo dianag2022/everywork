@@ -53,136 +53,137 @@ const calculateRadiusFromZoom = (zoomLevel: number, mapBounds?: { lat: number; l
     return 1500                       // Continental - 1500km
 }
 
-// Simple Price Range Component with Two Inputs
+// Compact Price Range Component for Sidebar
 function PriceRangeInputs({
     minPrice,
     maxPrice,
     onRangeChange,
     className = ""
-  }: {
+}: {
     minPrice: number
     maxPrice: number
     onRangeChange: (min: number, max: number) => void
     className?: string
-  }) {
+}) {
     const [tempMin, setTempMin] = useState(minPrice.toString())
     const [tempMax, setTempMax] = useState(maxPrice.toString())
-  
-    const formatPrice = (price: number) => {
-      return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(price)
-    }
-  
-    const handleMinChange = (value: string) => {
-      const numericValue = value.replace(/[^\d]/g, '')
-      setTempMin(numericValue)
-      const minNum = parseInt(numericValue) || 0
-      const maxNum = parseInt(tempMax) || 10000000
-      onRangeChange(minNum, maxNum)
-    }
-  
-    const handleMaxChange = (value: string) => {
-      const numericValue = value.replace(/[^\d]/g, '')
-      setTempMax(numericValue)
-      const minNum = parseInt(tempMin) || 0
-      const maxNum = parseInt(numericValue) || 10000000
-      onRangeChange(minNum, maxNum)
-    }
-  
-    const clearFilters = () => {
-      setTempMin('0')
-      setTempMax('10000000')
-      onRangeChange(0, 10000000)
-    }
-  
-    return (
-      <div className={`space-y-4 ${className}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <DollarSign className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-medium text-gray-700">Rango de precio</span>
-          </div>
-          <button
-            onClick={clearFilters}
-            className="text-xs text-gray-500 hover:text-red-600 transition-colors"
-          >
-            Limpiar
-          </button>
-        </div>
-  
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500 font-medium">Precio mínimo</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
-              <input
-                type="text"
-                value={tempMin}
-                onChange={(e) => handleMinChange(e.target.value)}
-                className="w-full pl-7 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
-                placeholder="0"
-              />
-            </div>
-          </div>
-  
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500 font-medium">Precio máximo</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
-              <input
-                type="text"
-                value={tempMax}
-                onChange={(e) => handleMaxChange(e.target.value)}
-                className="w-full pl-7 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
-                placeholder="Sin límite"
-              />
-            </div>
-          </div>
-        </div>
-  
-        {(parseInt(tempMin) > 0 || parseInt(tempMax) < 10000000) && (
-          <div className="text-center py-2 px-4 bg-green-50 rounded-lg border border-green-100">
-            <span className="text-sm font-medium text-green-700">
-              Buscando de {formatPrice(parseInt(tempMin) || 0)} a {formatPrice(parseInt(tempMax) || 10000000)}
-            </span>
-          </div>
-        )}
-  
-        <div className="flex flex-wrap gap-2">
-          {[
-            { label: "Hasta $50k", min: 0, max: 50000 },
-            { label: "$50k - $200k", min: 50000, max: 200000 },
-            { label: "$200k - $500k", min: 200000, max: 500000 },
-            { label: "Más de $500k", min: 500000, max: 10000000 }
-          ].map((preset) => (
-            <button
-              key={preset.label}
-              onClick={() => {
-                setTempMin(preset.min.toString())
-                setTempMax(preset.max.toString())
-                onRangeChange(preset.min, preset.max)
-              }}
-              className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700 rounded-full transition-all duration-200 border border-transparent hover:border-green-200"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
 
-  // MapContent component
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(price)
+    }
+
+    const handleMinChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, '')
+        setTempMin(numericValue)
+        const minNum = parseInt(numericValue) || 0
+        const maxNum = parseInt(tempMax) || 10000000
+        onRangeChange(minNum, maxNum)
+    }
+
+    const handleMaxChange = (value: string) => {
+        const numericValue = value.replace(/[^\d]/g, '')
+        setTempMax(numericValue)
+        const minNum = parseInt(tempMin) || 0
+        const maxNum = parseInt(numericValue) || 10000000
+        onRangeChange(minNum, maxNum)
+    }
+
+    const clearFilters = () => {
+        setTempMin('0')
+        setTempMax('10000000')
+        onRangeChange(0, 10000000)
+    }
+
+    return (
+        <div className={`space-y-3 ${className}`}>
+            {/* Input Fields */}
+            <div className="space-y-2">
+                <div className="space-y-1">
+                    <label className="text-xs text-gray-600 font-medium">Precio mínimo</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+                        <input
+                            type="text"
+                            value={tempMin}
+                            onChange={(e) => handleMinChange(e.target.value)}
+                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+                            placeholder="0"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs text-gray-600 font-medium">Precio máximo</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+                        <input
+                            type="text"
+                            value={tempMax}
+                            onChange={(e) => handleMaxChange(e.target.value)}
+                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+                            placeholder="Sin límite"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Current Range Display */}
+            {(parseInt(tempMin) > 0 || parseInt(tempMax) < 10000000) && (
+                <div className="text-center py-2 px-3 bg-green-50 rounded-lg border border-green-100">
+                    <span className="text-xs font-medium text-green-700">
+                        {formatPrice(parseInt(tempMin) || 0)} a {formatPrice(parseInt(tempMax) || 10000000)}
+                    </span>
+                </div>
+            )}
+
+            {/* Quick Preset Buttons */}
+            <div className="space-y-2">
+                <p className="text-xs text-gray-500 font-medium">Rangos rápidos</p>
+                <div className="flex flex-col gap-2">
+                    {[
+                        { label: "Hasta $50k", min: 0, max: 50000 },
+                        { label: "$50k - $200k", min: 50000, max: 200000 },
+                        { label: "$200k - $500k", min: 200000, max: 500000 },
+                        { label: "Más de $500k", min: 500000, max: 10000000 }
+                    ].map((preset) => (
+                        <button
+                            key={preset.label}
+                            onClick={() => {
+                                setTempMin(preset.min.toString())
+                                setTempMax(preset.max.toString())
+                                onRangeChange(preset.min, preset.max)
+                            }}
+                            className="w-full px-3 py-2 text-sm bg-gray-50 hover:bg-green-50 text-gray-700 hover:text-green-700 rounded-lg transition-all duration-200 border border-gray-200 hover:border-green-300 text-left font-medium"
+                        >
+                            {preset.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Clear Button */}
+            <button
+                onClick={clearFilters}
+                className="w-full px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-gray-200 hover:border-red-200 font-medium"
+            >
+                Limpiar filtro de precio
+            </button>
+        </div>
+    )
+}
+
+// MapContent component
 function MapContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const query = searchParams.get('query') || ''
     const categoryParam = searchParams.get('category') || ''
-    
+
     const [services, setServices] = useState<ServiceWithProvider[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState(categoryParam)
@@ -314,33 +315,33 @@ function MapContent() {
     }, [query])
 
     // Fetch services with filters
-   // Fetch services with filters
-   useEffect(() => {
-    async function fetchResults() {
-        setLoading(true)
-        try {
-            const results: ServiceWithProvider[] = await searchServices(
-                debouncedQuery,
-                category,
-                priceRange.min,
-                priceRange.max,
-                userLocation || undefined,
-                searchRadius
-            )
-            setServices(results)
-            updateURL(debouncedQuery, category)
-        } catch (error) {
-            console.error('Error fetching search results:', error)
-            setServices([])
-        } finally {
-            setLoading(false)
+    // Fetch services with filters
+    useEffect(() => {
+        async function fetchResults() {
+            setLoading(true)
+            try {
+                const results: ServiceWithProvider[] = await searchServices(
+                    debouncedQuery,
+                    category,
+                    priceRange.min,
+                    priceRange.max,
+                    userLocation || undefined,
+                    searchRadius
+                )
+                setServices(results)
+                updateURL(debouncedQuery, category)
+            } catch (error) {
+                console.error('Error fetching search results:', error)
+                setServices([])
+            } finally {
+                setLoading(false)
+            }
         }
-    }
 
-    if (!locationLoading) {
-        fetchResults()
-    }
-}, [debouncedQuery, category, userLocation, locationLoading, searchRadius, priceRange])
+        if (!locationLoading) {
+            fetchResults()
+        }
+    }, [debouncedQuery, category, userLocation, locationLoading, searchRadius, priceRange])
 
     // Handle search form submit
     const handleSearch = (e: React.FormEvent) => {
@@ -379,9 +380,11 @@ function MapContent() {
     }
 
     // Filter row component
+    // Filter row component
+    // Filter row component
     const FilterRow = () => (
-        <div className="flex flex-wrap items-center gap-2 mb-3 relative z-[95]">
-            {/* Category Filter */}
+<div className="flex flex-col gap-3 w-full">
+{/* Category Filter */}
             <div className="relative">
                 <button
                     onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -445,22 +448,37 @@ function MapContent() {
                 </button>
 
                 {isPriceFilterOpen && (
-                    <div className="absolute top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-200 z-[100] overflow-visible
-                                    w-72 sm:w-80 md:w-96
-                                    right-0 sm:left-0 sm:right-auto
-                                    max-w-[calc(100vw-2rem)]">
-                        <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-800">Filtrar por precio</h3>
-                        </div>
+                    <>
+                        {/* Backdrop to close dropdown when clicking outside */}
+                        <div
+                            className="fixed inset-0 z-[99]"
+                            onClick={() => setIsPriceFilterOpen(false)}
+                        />
+                        <div
+  className="
+    absolute top-full left-0 mt-2
+    w-[250px]
+    h-[250px] overflow-scroll
+    md:h-auto md:overflow-visible
+    bg-white rounded-xl shadow-xl border border-gray-200
+    z-[101]
+  "
+>
 
-                        <div className="p-4">
-                            <PriceRangeInputs
-                                minPrice={priceRange.min}
-                                maxPrice={priceRange.max}
-                                onRangeChange={handlePriceRangeChange}
-                            />
+
+                            <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
+                                <h3 className="text-sm font-semibold text-gray-800">Filtrar por precio</h3>
+                            </div>
+
+                            <div className="p-4">
+                                <PriceRangeInputs
+                                    minPrice={priceRange.min}
+                                    maxPrice={priceRange.max}
+                                    onRangeChange={handlePriceRangeChange}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
 
@@ -482,9 +500,8 @@ function MapContent() {
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-3 md:hidden">
             <button
                 onClick={() => setShowMobileList(!showMobileList)}
-                className={`w-14 h-14 rounded-full shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 ${
-                    hasActiveFilters ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`w-14 h-14 rounded-full shadow-lg border border-gray-200 flex items-center justify-center transition-all duration-200 ${hasActiveFilters ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
             >
                 <Filter className="w-6 h-6" />
                 {hasActiveFilters && (
@@ -498,8 +515,8 @@ function MapContent() {
 
     // Mobile services list
     const MobileServicesList = () => (
-        <div className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-300 md:hidden ${showMobileList ? 'translate-y-0' : 'translate-y-full'}`} 
-             style={{ maxHeight: '80vh' }}>
+        <div className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-300 md:hidden ${showMobileList ? 'translate-y-0' : 'translate-y-full'}`}
+            style={{ maxHeight: '80vh' }}>
             <div className="flex justify-center pt-3 pb-2">
                 <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
             </div>
@@ -670,7 +687,7 @@ function MapContent() {
                             </div>
                         )}
                     </form>
-                    
+
                     <FilterRow />
                 </div>
 
@@ -717,7 +734,7 @@ function MapContent() {
                                                     </div>
                                                 )}
                                             </div>
-                                            
+
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-medium text-gray-900 truncate">
                                                     {service.title}
@@ -810,7 +827,7 @@ function MapContent() {
         </div>
     )
 }
-  
+
 
 // Loading fallback component
 function MapLoading() {
