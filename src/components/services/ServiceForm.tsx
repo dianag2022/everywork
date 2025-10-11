@@ -213,7 +213,7 @@ export default function ServiceForm() {
         }] : undefined,
         gallery: imageUrls, // Store all images in gallery
         location: location, // Add location
-        phone_number: phone_number || undefined, D
+        phone_number: phone_number || undefined, 
       });
 
       setUploadProgress(100);
