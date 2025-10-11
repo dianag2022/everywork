@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { getServiceById, updateService } from '@/lib/services'
 import { uploadServiceImages } from '@/lib/storage'
 import { Service } from '@/types/database'
-import { ArrowLeft, Upload, X, Image as ImageIcon, Loader2, Phone, MapPin, DollarSign, Tag, FileText, Camera, Star } from 'lucide-react'
+import { ArrowLeft, Upload, X, Image as ImageIcon, Loader2, Phone, MapPin, DollarSign, Tag, FileText, Camera, Star, Instagram, Facebook, Music, Music2 } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
 import { LocationInput } from '@/components/forms/LocationInput'
 import { ServiceLocation } from '@/types/database'
@@ -35,12 +35,43 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
   const [isUploadingImages, setIsUploadingImages] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  
+  const [socialPlatform, setSocialPlatform] = useState<'instagram' | 'facebook' | 'tiktok' | ''>('');
+  const [socialUrl, setSocialUrl] = useState('');
   const [location, setLocation] = useState<ServiceLocation | null>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
+
+  const socialPlatforms = [
+    {
+      id: 'instagram',
+      name: 'Instagram',
+      icon: Instagram,
+      placeholder: 'https://instagram.com/tu_usuario',
+      color: 'from-pink-500 to-purple-600',
+      bgColor: 'bg-gradient-to-br from-pink-50 to-purple-50',
+      borderColor: 'border-pink-300'
+    },
+    {
+      id: 'facebook',
+      name: 'Facebook',
+      icon: Facebook,
+      placeholder: 'https://facebook.com/tu_pagina',
+      color: 'from-blue-500 to-blue-700',
+      bgColor: 'bg-gradient-to-br from-blue-50 to-blue-100',
+      borderColor: 'border-blue-300'
+    },
+    {
+      id: 'tiktok',
+      name: 'TikTok',
+      icon: Music2,
+      placeholder: 'https://tiktok.com/@tu_usuario',
+      color: 'from-gray-800 to-pink-600',
+      bgColor: 'bg-gradient-to-br from-gray-50 to-pink-50',
+      borderColor: 'border-gray-300'
+    }
+  ];
 
   useEffect(() => {
     const fetchService = async () => {
@@ -54,6 +85,10 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         
         setService(serviceData)
         setTitle(serviceData.title)
+        if (serviceData.social_media && serviceData.social_media.length > 0) {
+          setSocialPlatform(serviceData.social_media[0].name as 'instagram' | 'facebook' | 'tiktok');
+          setSocialUrl(serviceData.social_media[0].url);
+        }
         setDescription(serviceData.description || '')
         setPrice(serviceData.min_price.toString())
         setMaxPrice(serviceData.max_price.toString())
@@ -104,6 +139,18 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
     const phoneRegex = /^[\+]?[0-9\s\-\(\)]{7,20}$/
     return phoneRegex.test(phone)
   }
+
+  const validateSocialUrl = (platform: string, url: string): boolean => {
+    if (!url) return true; // Empty is valid (optional field)
+    
+    const patterns = {
+      instagram: /^https?:\/\/(www\.)?instagram\.com\/.+/i,
+      facebook: /^https?:\/\/(www\.)?facebook\.com\/.+/i,
+      tiktok: /^https?:\/\/(www\.)?tiktok\.com\/@.+/i,
+    };
+    
+    return patterns[platform as keyof typeof patterns]?.test(url) || false;
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -217,6 +264,11 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
       return
     }
 
+    if (socialPlatform && socialUrl && !validateSocialUrl(socialPlatform, socialUrl)) {
+      setError(`La URL de ${socialPlatform} no es válida`);
+      return;
+    }
+
     setIsLoading(true)
     setError('')
 
@@ -231,6 +283,10 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
         category,
         main_image: finalImageUrls[mainImageIndex],
         gallery: finalImageUrls,
+        social_media: socialPlatform && socialUrl ? [{
+          name: socialPlatform,
+          url: socialUrl
+        }] : undefined,
         phone_number: phone_number || undefined, // NEW FIELD
         location: {
           latitude: location.latitude,
@@ -446,6 +502,96 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
                 </div>
                 <p className="mt-1 text-xs text-gray-500">Opcional - Los clientes podrán contactarte directamente</p>
               </div>
+            </div>
+
+
+  {/* Social Media Information */}
+  <div className="space-y-6">
+              <div className="border-b border-gray-200 pb-4">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                  <Phone className="w-5 h-5 mr-2 text-pink-600" />
+                  Redes Sociales
+                </h2>
+              </div>
+
+              {/* Platform Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Selecciona tu red social
+                </label>
+                <div className="grid grid-cols-3 gap-4">
+                  {socialPlatforms.map((platform) => {
+                    const Icon = platform.icon;
+                    const isSelected = socialPlatform === platform.id;
+
+                    return (
+                      <button
+                        key={platform.id}
+                        type="button"
+                        onClick={() => {
+                          setSocialPlatform(platform.id as 'instagram' | 'facebook' | 'tiktok');
+                          setSocialUrl(''); // Clear URL when changing platform
+                        }}
+                        className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
+                          ? `${platform.bgColor} ${platform.borderColor} shadow-lg`
+                          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'
+                          }`}
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className={`p-3 rounded-full ${isSelected
+                            ? `bg-gradient-to-br ${platform.color}`
+                            : 'bg-gray-100'
+                            }`}>
+                            <Icon className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-gray-600'
+                              }`} />
+                          </div>
+                          <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'
+                            }`}>
+                            {platform.name}
+                          </span>
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* URL Input */}
+              {socialPlatform && (
+                <div className="animate-slideDown">
+                  <label htmlFor="social_url" className="block text-sm font-medium text-gray-700 mb-2">
+                    URL de {socialPlatforms.find(p => p.id === socialPlatform)?.name}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      {(() => {
+                        const Icon = socialPlatforms.find(p => p.id === socialPlatform)?.icon;
+                        return Icon ? <Icon className="h-5 w-5 text-gray-400" /> : null;
+                      })()}
+                    </div>
+                    <input
+                      type="url"
+                      id="social_url"
+                      value={socialUrl}
+                      onChange={(e) => setSocialUrl(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                      placeholder={socialPlatforms.find(p => p.id === socialPlatform)?.placeholder}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Opcional - Comparte tu perfil para que los clientes puedan conocerte mejor
+                  </p>
+                  {socialUrl && !validateSocialUrl(socialPlatform, socialUrl) && (
+                    <p className="mt-1 text-xs text-red-500 flex items-center">
+                      <span className="mr-1">⚠️</span>
+                      La URL no parece válida para {socialPlatforms.find(p => p.id === socialPlatform)?.name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Location */}

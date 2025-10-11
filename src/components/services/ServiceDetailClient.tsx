@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Edit2, Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle } from 'lucide-react'
+import { MapPin, Phone, MessageCircle, Star, Tag, User, ThumbsUp, Calendar, ChevronLeft, ChevronRight, X, Edit2, Send, Camera, Trash2, ExternalLink, Monitor, Plus, AlertCircle, Instagram, Facebook, Music, Music2 } from 'lucide-react'
 import WhatsAppButton from '@/components/services/WhatsAppButton'
 import type { ServiceWithProvider } from '@/types/database'
 import type { CreateReviewData } from '@/types/review'
@@ -11,6 +11,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { createReview, getServiceReviews, updateReview, deleteReview } from '@/lib/services'
 import type { PaginatedReviews, ReviewWithReviewer } from '@/types/review'
 import { toast } from 'react-hot-toast' // Or your preferred toast library
+import { SocialMediaLink } from '../ui/SocialMediaLink'
+
+
 
 // Leaflet type definitions
 interface LeafletMap {
@@ -46,6 +49,7 @@ declare global {
         L?: LeafletStatic
     }
 }
+
 
 // OpenStreetMap Component
 function ServiceMap({ service }: { service: ServiceWithProvider }) {
@@ -1044,6 +1048,20 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
 
                                 {/* WhatsApp Button */}
                                 <WhatsAppButton phoneNumber={service.phone_number} serviceName={service.title} />
+
+                                {/* Social Media Links */}
+                                {/* Social Media Links - Multiple platforms */}
+                                {service.social_media && service.social_media.length > 0 && (
+                                    <>
+                                        {service.social_media.map((social, index) => (
+                                            <SocialMediaLink
+                                                key={`${social.name}-${index}`}
+                                                name={social.name}
+                                                url={social.url}
+                                            />
+                                        ))}
+                                    </>
+                                )}
                             </div>
 
                             {/* Service Details */}
@@ -1104,46 +1122,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                     <ReviewsDisplay serviceId={service.id} reviewsKey={reviewsKey} />
                 </div>
 
-                {/* Modal for full-screen image viewing */}
-                {/* {isModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4">
-                        <div className="relative max-w-6xl max-h-full">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                            >
-                                <X className="w-6 h-6" />
-                            </button>
 
-                            <div className="relative">
-                                <Image
-                                    src={images[currentImageIndex]}
-                                    alt={`${service.title} - Imagen ${currentImageIndex + 1}`}
-                                    width={1200}
-                                    height={800}
-                                    className="max-h-[85vh] w-auto object-contain rounded-lg"
-                                />
-
-                                {images.length > 1 && (
-                                    <>
-                                        <button
-                                            onClick={prevImage}
-                                            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-4 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                                        >
-                                            <ChevronLeft className="w-6 h-6" />
-                                        </button>
-                                        <button
-                                            onClick={nextImage}
-                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-4 rounded-full hover:bg-opacity-70 transition-all duration-200"
-                                        >
-                                            <ChevronRight className="w-6 h-6" />
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )} */}
             </div>
         </div>
     )

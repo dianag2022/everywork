@@ -203,6 +203,11 @@ export async function getServiceByCategory(category: string): Promise<ServiceWit
 export async function createService(serviceData: Omit<CreateServiceData, 'provider_id'> & {
   main_image?: string;
   gallery?: string[];
+  social_media?: [{
+    name: string;
+    url: string;
+    }
+  ];
   location?: {
     latitude?: number;
     longitude?: number;

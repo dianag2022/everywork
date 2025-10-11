@@ -19,6 +19,11 @@ export interface Service {
   status: boolean
   gallery: string[] // Array of image URLs stored as JSONB
   category?: string
+  social_media?: [{
+    name: string;
+    url: string;
+    }
+  ];
   //location fields
   latitude: number | null
   longitude: number | null
@@ -56,6 +61,11 @@ export interface CreateServiceData {
   min_price: number
   max_price: number
   gallery?: string[]
+  social_media?: [{
+    name: string;
+    url: string;
+    }
+  ];
   provider_id: string
   status?: boolean
   location?: ServiceLocation
@@ -67,6 +77,11 @@ export interface UpdateServiceData {
   description?: string
   main_image?: string
   gallery?: string[]
+  social_media?: [{
+    name: string;
+    url: string;
+    }
+  ];
   min_price?: number
   max_price?: number
   status?: boolean
