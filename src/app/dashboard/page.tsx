@@ -241,7 +241,6 @@ function ServiceListItem({
       {/* Action Buttons */}
       <div className="flex-shrink-0 flex items-center space-x-2">
         {/* Edit Button */}
-        <p>{service.id}</p>
         {!isInactive && (
           <Link
             href={`/services/${generateServiceSlug(service)}/edit`}
