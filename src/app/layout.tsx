@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script"
+
 import "./globals.css";
 
 import Header from "@/components/header/header";
@@ -30,6 +32,20 @@ export default function RootLayout({
       >
         <Header />
         {children}
+
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-QEZ651RHP2"
+          strategy="afterInteractive"
+        />
+        <Script id="ga">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-QEZ651RHP2');
+          `}
+        </Script>
+
       </body>
     </html>
   );
