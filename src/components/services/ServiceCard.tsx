@@ -11,6 +11,9 @@ import { getServiceReviewStats } from '@/lib/services'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination, Keyboard, Zoom } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
+import { generateServiceSlug } from '@/lib/slugify';
+
+
 import 'swiper/css'
 import 'swiper/css/pagination'
 
@@ -29,6 +32,9 @@ interface ReviewStats {
 }
 
 export function ServiceCard({ service, onFavorite, isFavorite = false }: ServiceCardProps) {
+  const slug = generateServiceSlug(service);
+  
+
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(true)
   const [swiperInstance, setSwiperInstance] = useState<SwiperType | null>(null)
@@ -79,8 +85,9 @@ export function ServiceCard({ service, onFavorite, isFavorite = false }: Service
 
   return (
     <>
-      <Link href={`/services/${service.id}`}>
-        <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
+      {/* <Link href={`/services/${service.id}`}> */}
+      <Link href={`/services/${slug}`} className="block">
+        <div className="service-card group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
           {/* Imagen del servicio con Swiper */}
           <div className="relative aspect-[4/3] overflow-hidden">
             <Swiper

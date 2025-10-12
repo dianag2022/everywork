@@ -26,9 +26,9 @@ function isErrorResponse(response: unknown): response is ApiErrorResponse {
   if (response === null || typeof response !== 'object') {
     return false;
   }
-  
+
   const obj = response as Record<string, unknown>;
-  
+
   return 'error' in obj &&
     obj.error !== null &&
     typeof obj.error === 'object' &&
@@ -64,8 +64,7 @@ async function apiRequest<T>(
   // Get auth token from localStorage
   // Obtener token de Supabase en lugar de localStorage
   const token = await getSupabaseToken();
-  console.log("token", token);
-  
+
   if (token) {
     defaultOptions.headers = {
       ...defaultOptions.headers,
@@ -121,7 +120,16 @@ async function apiRequest<T>(
 async function apiRequestWithMetadata<T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<{ data: T; count?: number; status: string }> {
+): Promise<{
+  data: T; count?: number; pagination?: {
+    current_page: number
+    total_count: number
+    has_more: boolean
+  }; stats?: {
+    average_rating?: number
+    total_reviews: number
+  }; status: string
+}> {
   const url = `${API_BASE_URL}${endpoint}`;
 
   const defaultOptions: RequestInit = {
@@ -193,6 +201,13 @@ export async function getServicesByProvider(providerId: string): Promise<Service
 export async function getServiceById(id: string): Promise<ServiceWithProvider> {
   return apiRequest<ServiceWithProvider>(`/services/${id}`)
 }
+// Get service by slug
+export async function getServiceBySlug(slug: string): Promise<ServiceWithProvider> {
+  const parts = slug.split('-');
+  const shortUuid = parts[parts.length - 1];
+
+  return apiRequest<ServiceWithProvider>(`/services/${shortUuid}`)
+}
 
 // Get services by category
 export async function getServiceByCategory(category: string): Promise<ServiceWithProvider[]> {
@@ -206,7 +221,7 @@ export async function createService(serviceData: Omit<CreateServiceData, 'provid
   social_media?: [{
     name: string;
     url: string;
-    }
+  }
   ];
   location?: {
     latitude?: number;
@@ -310,9 +325,14 @@ export async function getServiceReviews(
   })
 
 
-  const response = await apiRequestWithMetadata<PaginatedReviews>(`/reviews/service/${serviceId}?${params}`)
-  
-  return response.data 
+  const response = await apiRequestWithMetadata<ReviewWithReviewer[]>(`/reviews/service/${serviceId}?${params}`)
+
+  return {
+    status: response.status,
+    data: response.data,
+    pagination: response.pagination,
+    stats: response.stats,
+  };
 }
 
 // Get review statistics for a service

@@ -406,11 +406,11 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             }
             setError('')
 
-            const data = await getServiceReviews(serviceId, page, limit, sort)
-
+            const response = await getServiceReviews(serviceId, page, limit, sort)
+            const data = response;
             const reviewsArray = Array.isArray(data) ? data : data.data
-
-            setReviews(data)
+            
+            setReviews(data);
 
             if (append && page > 1) {
                 setAllReviews(prev => [...prev, ...reviewsArray])
@@ -635,6 +635,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             )}
 
             {/* Reviews Stats */}
+            
             {reviews?.stats && reviews.stats.average_rating !== undefined && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
                     <div className="text-center md:text-left">
@@ -892,7 +893,6 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [reviewsKey, setReviewsKey] = useState(0)
-    console.log("service detail client", service);
 
     // Prepare images array
     const images = service.gallery && service.gallery.length > 0 ? service.gallery : (service.main_image ? [service.main_image] : [])
