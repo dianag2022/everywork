@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: GenerateMetadataProps) {
       : `$${service.min_price.toLocaleString()} - $${service.max_price.toLocaleString()}`;
 
     return {
-      title: `${service.title} en ${location} | GoEveryWork`,
+      title: `${service.title} en ${location} | goeverywork`,
       description: service.description 
         ? `${service.description.substring(0, 155)}...` 
         : `Encuentra ${service.title} en ${location}. Precios desde ${priceRange}. Contacta directamente con el proveedor.`,
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: GenerateMetadataProps) {
     };
   } catch (error) {
     return {
-      title: 'Servicio no encontrado | GoEveryWork',
+      title: 'Servicio no encontrado | goeverywork',
       description: 'El servicio que buscas no está disponible.',
     };
   }
@@ -80,7 +80,7 @@ export default async function ServiceDetail({ params }: ServiceDetailProps) {
       "image": service.main_image || undefined,
       "provider": {
         "@type": "Organization",
-        "name": service.provider?.email || "GoEveryWork"
+        "name": service.provider?.email || "goeverywork"
       },
       "offers": {
         "@type": "AggregateOffer",
