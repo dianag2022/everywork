@@ -142,7 +142,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     if (isAuthenticated && user?.id) {
       fetchService()
     }
-  }, [params.id, user?.id, isAuthenticated])
+  }, [params, user?.id, isAuthenticated])
 
   const validatePhoneNumber = (phone: string): boolean => {
     const phoneRegex = /^[\+]?[0-9\s\-\(\)]{7,20}$/
