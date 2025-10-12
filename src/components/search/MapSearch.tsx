@@ -7,6 +7,7 @@ import { ServiceWithProvider } from '@/types/database';
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet';
 import { useMapEvents } from 'react-leaflet'
+import { generateServiceSlug } from '@/lib/slugify';
 
 interface MapSearchProps {
   services: ServiceWithProvider[]
@@ -223,7 +224,10 @@ export default function MapSearch({ services, selectedService, onServiceSelect, 
     if (onServiceSelect) {
       onServiceSelect(service)
     }
-    router.push(`/services/${service.id}`)
+
+    const slug = generateServiceSlug(service);
+
+    router.push(`/services/${slug}`)
   }
 
   const createServiceIcon = (imageUrl: string | null) => {

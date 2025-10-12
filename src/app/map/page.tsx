@@ -8,6 +8,7 @@ import { Search, MapPin, Star, Clock, Loader2, AlertCircle, List, Map, X, Filter
 import dynamic from 'next/dynamic'
 import { ServiceWithProvider } from '@/types/database';
 import { useCategories } from '@/hooks/useCategories'
+import { generateServiceSlug } from '@/lib/slugify'
 
 // Dynamically import MapSearch with no SSR to prevent window errors
 const MapSearch = dynamic(() => import('@/components/search/MapSearch'), {
@@ -719,7 +720,7 @@ function MapContent() {
                         ) : services.length > 0 ? (
                             <div className="space-y-4">
                                 {services.map((service) => (
-                                    <Link href={`/services/${service.id}`} key={service.id}>
+                                    <Link href={`/services/${generateServiceSlug(service)}`} key={service.id}>
                                         <div className="flex space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                                             <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                                                 {service.gallery && service.gallery[0] ? (

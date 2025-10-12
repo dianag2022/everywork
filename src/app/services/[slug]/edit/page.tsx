@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, notFound } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { getServiceById, updateService } from '@/lib/services'
+import { getServiceById, updateService, getServiceBySlug } from '@/lib/services';
+import { extractUuidFromSlug } from '@/lib/slugify';
 import { uploadServiceImages } from '@/lib/storage'
 import { Service } from '@/types/database'
 import { ArrowLeft, Upload, X, Image as ImageIcon, Loader2, Phone, MapPin, DollarSign, Tag, FileText, Camera, Star, Instagram, Facebook, Music, Music2 } from 'lucide-react'
@@ -19,7 +20,11 @@ interface ImageFile {
   isExisting?: boolean
 }
 
-export default function EditServicePage({ params }: { params: { id: string } }) {
+interface EditServicePageProps {
+  params: Promise<{ slug: string }>
+}
+
+export default function EditServicePage({ params }: EditServicePageProps) {
   const [service, setService] = useState<Service | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -41,7 +46,10 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated } = useAuth();
+
+  // const shortUuid = extractUuidFromSlug(slug);
+
 
   const socialPlatforms = [
     {
@@ -76,7 +84,8 @@ export default function EditServicePage({ params }: { params: { id: string } }) 
   useEffect(() => {
     const fetchService = async () => {
       try {
-        const serviceData = await getServiceById(params.id)
+        const { slug } = await params;
+        const serviceData = await getServiceBySlug(slug);
         
         if (serviceData.provider_id !== user?.id) {
           setError('No tienes permisos para editar este servicio')

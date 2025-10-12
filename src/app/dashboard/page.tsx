@@ -6,6 +6,7 @@ import { getServicesByProvider, deleteService } from '@/lib/services'
 import { Service } from '@/types/database'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { generateServiceSlug } from '@/lib/slugify'
 
 export default function DashboardPage() {
   const [activeServices, setActiveServices] = useState<Service[]>([])
@@ -240,9 +241,10 @@ function ServiceListItem({
       {/* Action Buttons */}
       <div className="flex-shrink-0 flex items-center space-x-2">
         {/* Edit Button */}
+        <p>{service.id}</p>
         {!isInactive && (
           <Link
-            href={`/services/${service.id}/edit`}
+            href={`/services/${generateServiceSlug(service)}/edit`}
             className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
           >
             <Edit className="w-5 h-5" />
