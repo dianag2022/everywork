@@ -17,7 +17,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "everywork",
-  description: "Servicios y trabajos",
+  description: "Tu plataforma de confianza para encontrar y ofrecer servicios profesionales. Conecta con negocios locales, independientes y emprendedores!",
+  verification: {
+    google: 'RuKMJfbVtRXCgccIK7bgYawn9vI3br1OBwh8CXVxNmw',
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +33,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
+        <Header 
+        
+        />
         {children}
 
         <Script

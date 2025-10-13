@@ -51,6 +51,12 @@ export default function Header() {
                 <MapPin className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
                 Mapa
               </Link>
+              <Link 
+                href="/about" 
+                className="flex items-center text-gray-600 hover:text-blue-700 hover:bg-white/50 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 group"
+              >
+                Sobre Nosotros
+              </Link>
             </nav>
           </div>
 
