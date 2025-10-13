@@ -16,8 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "everywork",
+  metadataBase: new URL('https://www.goeverywork.com'),
+  title: "Goeverywork",
   description: "Tu plataforma de confianza para encontrar y ofrecer servicios profesionales. Conecta con negocios locales, independientes y emprendedores!",
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+    ]
+  },
   verification: {
     google: 'RuKMJfbVtRXCgccIK7bgYawn9vI3br1OBwh8CXVxNmw',
   },
