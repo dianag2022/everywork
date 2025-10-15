@@ -262,7 +262,7 @@ export default function ServiceForm() {
           url: socialUrl
         }] : undefined,
         gallery: imageUrls,
-        location: location,
+        location: location ?? undefined,
         phone_number: phone_number || undefined,
       });
 
