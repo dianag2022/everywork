@@ -9,7 +9,7 @@ import {  SERVICE_LIMITS } from '@/lib/constants'
 export default function NewServicePage() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [maxServices, setMaxServices] = useState(SERVICE_LIMITS.MAX_SERVICES_PER_USER);
+  const [maxServices, setMaxServices] = useState<number>(SERVICE_LIMITS.MAX_SERVICES_PER_USER);
   const router = useRouter();
 
   useEffect(() => {
