@@ -348,8 +348,8 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault()
     
     // Only allow submission on the final step
     if (currentStep < STEPS.length) {
@@ -995,10 +995,9 @@ export default function EditServicePage({ params }: EditServicePageProps) {
               ) : (
                 <button
                   type="submit"
-                  onClick={(e) => {
-                    e.preventDefault()
+                  onClick={() => {
                     if (!isTransitioning) {
-                      handleSubmit(e as any)
+                      handleSubmit()
                     }
                   }}
                   disabled={isLoading || isUploadingImages || isTransitioning}
