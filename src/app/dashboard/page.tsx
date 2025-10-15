@@ -207,7 +207,7 @@ function ServiceListItem({
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200">
           {service.main_image ? (
             <Link
-              href={!isInactive ? `/services/${service.id}` : "#"}
+              href={!isInactive ? `/services/${generateServiceSlug(service)}` : "#"}
               className={isInactive ? "pointer-events-none opacity-50" : ""}
             >
               <img

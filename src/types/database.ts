@@ -53,6 +53,9 @@ export interface ServiceWithProvider extends Service {
   }
 }
 
+export interface CountMyServices {
+  count: number;
+}
 export interface CreateServiceData {
   title: string
   description?: string

@@ -2,8 +2,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MapPin, Loader2, Search } from 'lucide-react'
+import { MapPin, Loader2, Search, Map } from 'lucide-react'
 import { ServiceLocation } from '@/types/database'
+import dynamic from 'next/dynamic'
+
+// Dynamically import the map to avoid SSR issues
+const LocationMapPicker = dynamic(() => import('./LocationMapPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-100 rounded-xl flex items-center justify-center animate-pulse">
+      <p className="text-gray-500">Cargando mapa...</p>
+    </div>
+  )
+})
 
 interface LocationInputProps {
   value: ServiceLocation | null
@@ -16,6 +27,7 @@ export function LocationInput({ value, onChange, required = false }: LocationInp
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showMap, setShowMap] = useState(false)
 
   useEffect(() => {
     if (value?.address) {
@@ -90,73 +102,115 @@ export function LocationInput({ value, onChange, required = false }: LocationInp
     }
   }
 
-  const handleAddressSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    searchAddress()
-  }
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <label className="block text-sm font-medium text-gray-700">
         Ubicación del Servicio {required && <span className="text-red-500">*</span>}
       </label>
       
-      {/* Address Input */}
-      <form onSubmit={handleAddressSubmit} className="flex space-x-2">
-        <div className="flex-1">
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Ingresa la dirección del servicio"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required={required}
+      {/* Toggle between search and map */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShowMap(false)}
+          className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+            !showMap
+              ? 'bg-blue-50 border-blue-500 text-blue-700'
+              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+          }`}
+        >
+          <Search className="w-5 h-5 mr-2" />
+          Buscar Dirección
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowMap(true)}
+          className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+            showMap
+              ? 'bg-blue-50 border-blue-500 text-blue-700'
+              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+          }`}
+        >
+          <Map className="w-5 h-5 mr-2" />
+          Seleccionar en Mapa
+        </button>
+      </div>
+
+      {!showMap ? (
+        // Search mode
+        <div className="space-y-3">
+          {/* Address Input */}
+          <div className="flex space-x-2">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchAddress();
+                  }
+                }}
+                placeholder="Ingresa la dirección del servicio"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                required={required}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={searchAddress}
+              disabled={isSearching || !address.trim()}
+              className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              {isSearching ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+
+          {/* Current Location Button */}
+          <button
+            type="button"
+            onClick={getCurrentLocation}
+            disabled={isGettingLocation}
+            className="w-full flex items-center justify-center px-4 py-3 border-2 border-blue-300 text-blue-600 rounded-xl hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            {isGettingLocation ? (
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            ) : (
+              <MapPin className="w-5 h-5 mr-2" />
+            )}
+            {isGettingLocation ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+          </button>
+        </div>
+      ) : (
+        // Map mode
+        <div>
+          <LocationMapPicker
+            value={value}
+            onChange={onChange}
           />
         </div>
-        <button
-          type="button" // CHANGED: Explicitly set type to button
-          onClick={searchAddress} // CHANGED: Use onClick instead of relying on form submit
-          disabled={isSearching || !address.trim()}
-          className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSearching ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Search className="w-4 h-4" />
-          )}
-        </button>
-      </form>
-
-      {/* Current Location Button */}
-      <button
-        type="button"
-        onClick={getCurrentLocation}
-        disabled={isGettingLocation}
-        className="w-full flex items-center justify-center px-3 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isGettingLocation ? (
-          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        ) : (
-          <MapPin className="w-4 h-4 mr-2" />
-        )}
-        {isGettingLocation ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
-      </button>
+      )}
 
       {/* Location Preview */}
       {value && value.latitude && value.longitude && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+        <div className="p-4 bg-green-50 border-2 border-green-200 rounded-xl">
           <div className="flex items-start">
-            <MapPin className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-            <div className="text-sm">
+            <MapPin className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="text-sm flex-1">
               <p className="text-green-800 font-medium">Ubicación confirmada</p>
-              <p className="text-green-700">{value.address}</p>
+              <p className="text-green-700 mt-1">{value.address}</p>
               {value.city && (
-                <p className="text-green-600">
+                <p className="text-green-600 mt-1">
                   {value.city}{value.state && `, ${value.state}`}
                 </p>
               )}
               <p className="text-green-600 text-xs mt-1">
-                {value.latitude.toFixed(6)}, {value.longitude.toFixed(6)}
+                Coordenadas: {value.latitude.toFixed(6)}, {value.longitude.toFixed(6)}
               </p>
             </div>
           </div>
@@ -165,7 +219,9 @@ export function LocationInput({ value, onChange, required = false }: LocationInp
 
       {/* Error Message */}
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <div className="p-3 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
       )}
     </div>
   )

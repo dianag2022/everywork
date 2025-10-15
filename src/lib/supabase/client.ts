@@ -59,10 +59,8 @@ export async function getSessionClient() {
 // Helper para obtener token para API calls
 export async function getSupabaseToken(): Promise<string | null> {
   try {
-    console.log("gettin session client.ts");
 
     const { data: { session }, error } = await supabaseClient.auth.getSession();
-    console.log("gettin session client.ts: ", session);
 
     if (error) {
       console.error('Error getting session:', error);

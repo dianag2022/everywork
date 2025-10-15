@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, notFound } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { getServiceById, updateService, getServiceBySlug } from '@/lib/services';
-import { extractUuidFromSlug } from '@/lib/slugify';
+import { getServiceBySlug, updateService } from '@/lib/services';
 import { uploadServiceImages } from '@/lib/storage'
 import { Service } from '@/types/database'
-import { ArrowLeft, Upload, X, Image as ImageIcon, Loader2, Phone, MapPin, DollarSign, Tag, FileText, Camera, Star, Instagram, Facebook, Music, Music2 } from 'lucide-react'
+import { ArrowLeft, Upload, X, Image as ImageIcon, Loader2, Phone, MapPin, DollarSign, Tag, FileText, Camera, Star, Instagram, Facebook, Music2, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { useCategories } from '@/hooks/useCategories'
 import { LocationInput } from '@/components/forms/LocationInput'
 import { ServiceLocation } from '@/types/database'
@@ -24,14 +23,22 @@ interface EditServicePageProps {
   params: Promise<{ slug: string }>
 }
 
+const STEPS = [
+  { id: 1, name: 'Información Básica', icon: FileText },
+  { id: 2, name: 'Imágenes', icon: Camera },
+  { id: 3, name: 'Precios y Categoría', icon: DollarSign },
+  { id: 4, name: 'Ubicación y Contacto', icon: MapPin },
+];
+
 export default function EditServicePage({ params }: EditServicePageProps) {
+  const [currentStep, setCurrentStep] = useState(1);
   const [service, setService] = useState<Service | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [max_price, setMaxPrice] = useState('')
   const [category, setCategory] = useState('')
-  const [phone_number, setPhoneNumber] = useState('') // NEW FIELD
+  const [phone_number, setPhoneNumber] = useState('')
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
 
   const [images, setImages] = useState<ImageFile[]>([])
@@ -43,13 +50,11 @@ export default function EditServicePage({ params }: EditServicePageProps) {
   const [socialPlatform, setSocialPlatform] = useState<'instagram' | 'facebook' | 'tiktok' | ''>('');
   const [socialUrl, setSocialUrl] = useState('');
   const [location, setLocation] = useState<ServiceLocation | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user, isAuthenticated } = useAuth();
-
-  // const shortUuid = extractUuidFromSlug(slug);
-
 
   const socialPlatforms = [
     {
@@ -102,7 +107,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
         setPrice(serviceData.min_price.toString())
         setMaxPrice(serviceData.max_price.toString())
         setCategory(serviceData.category || '')
-        setPhoneNumber(serviceData.phone_number || '') // NEW FIELD
+        setPhoneNumber(serviceData.phone_number || '')
         
         if (serviceData.latitude && serviceData.longitude) {
           setLocation({
@@ -123,7 +128,6 @@ export default function EditServicePage({ params }: EditServicePageProps) {
           }))
           setImages(existingImages)
           
-          // Set main image index based on main_image URL
           if (serviceData.main_image) {
             const mainIndex = serviceData.gallery.findIndex(url => url === serviceData.main_image)
             if (mainIndex !== -1) {
@@ -150,7 +154,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
   }
 
   const validateSocialUrl = (platform: string, url: string): boolean => {
-    if (!url) return true; // Empty is valid (optional field)
+    if (!url) return true;
     
     const patterns = {
       instagram: /^https?:\/\/(www\.)?instagram\.com\/.+/i,
@@ -210,7 +214,6 @@ export default function EditServicePage({ params }: EditServicePageProps) {
       
       newImages.splice(index, 1)
       
-      // Adjust main image index if necessary
       if (mainImageIndex >= newImages.length && newImages.length > 0) {
         setMainImageIndex(0)
       } else if (newImages.length === 0) {
@@ -258,23 +261,105 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     }
   }
 
+  const validateStep = (step: number): boolean => {
+    setError('');
+    
+    switch (step) {
+      case 1:
+        if (!title.trim()) {
+          setError('El título es requerido');
+          return false;
+        }
+        if (!description.trim()) {
+          setError('La descripción es requerida');
+          return false;
+        }
+        return true;
+      
+      case 2:
+        if (images.length === 0) {
+          setError('Debes tener al menos una imagen');
+          return false;
+        }
+        return true;
+      
+      case 3:
+        if (!price || parseFloat(price) <= 0) {
+          setError('El precio mínimo es requerido');
+          return false;
+        }
+        if (!max_price || parseFloat(max_price) <= 0) {
+          setError('El precio máximo es requerido');
+          return false;
+        }
+        if (parseFloat(max_price) < parseFloat(price)) {
+          setError('El precio máximo debe ser mayor o igual al precio mínimo');
+          return false;
+        }
+        if (!category) {
+          setError('Debes seleccionar una categoría');
+          return false;
+        }
+        return true;
+      
+      case 4:
+        if (!location) {
+          setError('Debes seleccionar una ubicación');
+          return false;
+        }
+        if (phone_number && !validatePhoneNumber(phone_number)) {
+          setError('El formato del número de teléfono no es válido');
+          return false;
+        }
+        if (socialPlatform && socialUrl && !validateSocialUrl(socialPlatform, socialUrl)) {
+          setError(`La URL de ${socialPlatform} no es válida`);
+          return false;
+        }
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setIsTransitioning(true)
+      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+      setError('');
+      // Reset transition state after a short delay
+      setTimeout(() => setIsTransitioning(false), 100)
+    }
+  };
+
+  const prevStep = () => {
+    setIsTransitioning(true)
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setError('');
+    // Reset transition state after a short delay
+    setTimeout(() => setIsTransitioning(false), 100)
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent Enter key from submitting form unless on final step
+    if (e.key === 'Enter' && currentStep < STEPS.length) {
+      e.preventDefault()
+      nextStep()
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Only allow submission on the final step
+    if (currentStep < STEPS.length) {
+      console.log('Form submission blocked - not on final step. Current step:', currentStep)
+      return
+    }
+    
     if (!service) return
 
-    if (!location || !location.latitude || !location.longitude) {
-      setError('Por favor selecciona una ubicación para el servicio')
-      return
-    }
-
-    if (phone_number && !validatePhoneNumber(phone_number)) {
-      setError('El formato del número de teléfono no es válido')
-      return
-    }
-
-    if (socialPlatform && socialUrl && !validateSocialUrl(socialPlatform, socialUrl)) {
-      setError(`La URL de ${socialPlatform} no es válida`);
+    if (!validateStep(4)) {
       return;
     }
 
@@ -296,15 +381,15 @@ export default function EditServicePage({ params }: EditServicePageProps) {
           name: socialPlatform,
           url: socialUrl
         }] : undefined,
-        phone_number: phone_number || undefined, // NEW FIELD
+        phone_number: phone_number || undefined,
         location: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          address: location.address,
-          city: location.city,
-          state: location.state,
-          country: location.country,
-          postal_code: location.postal_code,
+          latitude: location!.latitude!,
+          longitude: location!.longitude!,
+          address: location!.address,
+          city: location!.city,
+          state: location!.state,
+          country: location!.country,
+          postal_code: location!.postal_code,
         }
       })
       
@@ -423,7 +508,52 @@ export default function EditServicePage({ params }: EditServicePageProps) {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
               Editar Servicio
             </h1>
-            <p className="text-gray-600">Actualiza la información de tu servicio</p>
+            <p className="text-gray-600">Paso {currentStep} de {STEPS.length}</p>
+          </div>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {STEPS.map((step, index) => {
+              const StepIcon = step.icon;
+              const isCompleted = currentStep > step.id;
+              const isCurrent = currentStep === step.id;
+
+              return (
+                <div key={step.id} className="flex-1 flex items-center">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+                        isCompleted
+                          ? 'bg-green-500 text-white'
+                          : isCurrent
+                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                          : 'bg-gray-200 text-gray-400'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check className="w-6 h-6" />
+                      ) : (
+                        <StepIcon className="w-6 h-6" />
+                      )}
+                    </div>
+                    <span className={`mt-2 text-xs font-medium text-center hidden sm:block ${
+                      isCurrent ? 'text-purple-600' : 'text-gray-500'
+                    }`}>
+                      {step.name}
+                    </span>
+                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div
+                      className={`h-1 flex-1 mx-2 transition-all duration-300 ${
+                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -441,437 +571,490 @@ export default function EditServicePage({ params }: EditServicePageProps) {
         )}
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <form onSubmit={handleSubmit} className="p-8 space-y-8">
-            
-            {/* Service Basic Info */}
-            <div className="space-y-6">
-              <div className="border-b border-gray-200 pb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-purple-600" />
-                  Información Básica
-                </h2>
-              </div>
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            // Only allow submission if we're on the final step and not transitioning
+            if (currentStep === STEPS.length && !isTransitioning) {
+              handleSubmit(e)
+            } else {
+              console.log('Form submission blocked - currentStep:', currentStep, 'isTransitioning:', isTransitioning)
+            }
+          }} onKeyDown={handleKeyDown} className="p-8">
+            {/* Step 1: Basic Information */}
+            {currentStep === 1 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="border-b border-gray-200 pb-4">
+                  <h2 className="text-2xl font-semibold text-gray-800 flex items-center">
+                    <FileText className="w-6 h-6 mr-2 text-purple-600" />
+                    Información Básica
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Actualiza el título y descripción de tu servicio</p>
+                </div>
 
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Título del Servicio *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                  placeholder="Ej: Plomería domiciliaria, Diseño gráfico, Clases de guitarra..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción *
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
-                  placeholder="Describe detalladamente tu servicio, experiencia y lo que incluye..."
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="space-y-6">
-              <div className="border-b border-gray-200 pb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <Phone className="w-5 h-5 mr-2 text-blue-600" />
-                  Información de Contacto
-                </h2>
-              </div>
-
-              <div>
-                <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-2">
-                  Teléfono de Contacto
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                    Título del Servicio *
+                  </label>
                   <input
-                    type="tel"
-                    id="phone_number"
-                    value={phone_number}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                    placeholder="+57 300 123 4567"
+                    type="text"
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                    placeholder="Ej: Plomería domiciliaria, Diseño gráfico, Clases de guitarra..."
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Opcional - Los clientes podrán contactarte directamente</p>
-              </div>
-            </div>
 
-
-  {/* Social Media Information */}
-  <div className="space-y-6">
-              <div className="border-b border-gray-200 pb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <Phone className="w-5 h-5 mr-2 text-pink-600" />
-                  Redes Sociales
-                </h2>
-              </div>
-
-              {/* Platform Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Selecciona tu red social
-                </label>
-                <div className="grid grid-cols-3 gap-4">
-                  {socialPlatforms.map((platform) => {
-                    const Icon = platform.icon;
-                    const isSelected = socialPlatform === platform.id;
-
-                    return (
-                      <button
-                        key={platform.id}
-                        type="button"
-                        onClick={() => {
-                          setSocialPlatform(platform.id as 'instagram' | 'facebook' | 'tiktok');
-                          setSocialUrl(''); // Clear URL when changing platform
-                        }}
-                        className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
-                          ? `${platform.bgColor} ${platform.borderColor} shadow-lg`
-                          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'
-                          }`}
-                      >
-                        <div className="flex flex-col items-center space-y-2">
-                          <div className={`p-3 rounded-full ${isSelected
-                            ? `bg-gradient-to-br ${platform.color}`
-                            : 'bg-gray-100'
-                            }`}>
-                            <Icon className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-gray-600'
-                              }`} />
-                          </div>
-                          <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'
-                            }`}>
-                            {platform.name}
-                          </span>
-                          {isSelected && (
-                            <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción *
+                  </label>
+                  <textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={6}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
+                    placeholder="Describe detalladamente tu servicio, experiencia y lo que incluye..."
+                  />
                 </div>
               </div>
+            )}
 
-              {/* URL Input */}
-              {socialPlatform && (
-                <div className="animate-slideDown">
-                  <label htmlFor="social_url" className="block text-sm font-medium text-gray-700 mb-2">
-                    URL de {socialPlatforms.find(p => p.id === socialPlatform)?.name}
+            {/* Step 2: Images */}
+            {currentStep === 2 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="border-b border-gray-200 pb-4">
+                  <h2 className="text-2xl font-semibold text-gray-800 flex items-center">
+                    <Camera className="w-6 h-6 mr-2 text-pink-600" />
+                    Imágenes del Servicio
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Gestiona las fotos de tu servicio (mínimo 1, máximo 5)</p>
+                </div>
+
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all duration-200 ${
+                    isLoading || images.length >= 5
+                      ? 'bg-gray-50 border-gray-300 cursor-not-allowed'
+                      : 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-300 hover:border-purple-500 cursor-pointer hover:bg-gradient-to-br hover:from-purple-100 hover:to-blue-100'
+                  }`}
+                >
+                  <Upload className={`w-12 h-12 mb-4 ${
+                    isLoading || images.length >= 5 ? 'text-gray-400' : 'text-purple-500'
+                  }`} />
+                  <p className={`text-lg font-medium mb-2 ${
+                    isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-700'
+                  }`}>
+                    {images.length >= 5 
+                      ? 'Límite máximo de imágenes alcanzado' 
+                      : 'Arrastra y suelta imágenes aquí'
+                    }
+                  </p>
+                  <p className={`text-sm ${
+                    isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    o haz clic para seleccionar archivos
+                  </p>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    disabled={isLoading || images.length >= 5}
+                  />
+                  
+                  {images.length < 5 && !isLoading && (
+                    <label
+                      htmlFor="images"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                      {images.length === 0 ? 'Subir Imágenes' : 'Agregar Más Imágenes'}
+                    </label>
+                  )}
+                  
+                  <div className="flex items-center mt-4 space-x-4 text-xs text-gray-500">
+                    <span>PNG, JPG, GIF hasta 5MB</span>
+                    <span>•</span>
+                    <span className={`font-medium ${images.length === 5 ? 'text-red-500' : 'text-purple-600'}`}>
+                      {images.length}/5 imágenes
+                    </span>
+                  </div>
+                  
+                  {(isLoading || isUploadingImages) && (
+                    <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-xl">
+                      <div className="flex items-center text-purple-600">
+                        <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                        <span className="font-medium">
+                          {isUploadingImages ? 'Subiendo imágenes...' : 'Procesando...'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    {images.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 shadow-md">
+                          <Image
+                            src={image.url}
+                            alt={`Preview ${index + 1}`}
+                            width={200}
+                            height={200}
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                          />
+                        </div>
+                        
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-600 shadow-lg hover:shadow-xl"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        
+                        <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                          {mainImageIndex === index ? (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg">
+                              <Star className="w-3 h-3 mr-1 fill-current" />
+                              Principal
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setAsMainImage(index)}
+                              disabled={isLoading}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 shadow-md hover:shadow-lg"
+                              title="Establecer como imagen principal"
+                            >
+                              <Star className="w-3 h-3 mr-1" />
+                              Principal
+                            </button>
+                          )}
+                        </div>
+                        
+                        {image.isExisting && (
+                          <div className="absolute top-2 left-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 shadow-md">
+                              <ImageIcon className="w-3 h-3 mr-1" />
+                              Existente
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Pricing and Category */}
+            {currentStep === 3 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="border-b border-gray-200 pb-4">
+                  <h2 className="text-2xl font-semibold text-gray-800 flex items-center">
+                    <DollarSign className="w-6 h-6 mr-2 text-green-600" />
+                    Precios y Categoría
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Actualiza el rango de precios y la categoría</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                      Precio Mínimo *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span className="text-gray-500 font-medium">$</span>
+                      </div>
+                      <input
+                        type="number"
+                        id="price"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="max_price" className="block text-sm font-medium text-gray-700 mb-2">
+                      Precio Máximo *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span className="text-gray-500 font-medium">$</span>
+                      </div>
+                      <input
+                        type="number"
+                        id="max_price"
+                        value={max_price}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                    Categoría *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      {(() => {
-                        const Icon = socialPlatforms.find(p => p.id === socialPlatform)?.icon;
-                        return Icon ? <Icon className="h-5 w-5 text-gray-400" /> : null;
-                      })()}
+                      <Tag className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
-                      type="url"
-                      id="social_url"
-                      value={socialUrl}
-                      onChange={(e) => setSocialUrl(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                      placeholder={socialPlatforms.find(p => p.id === socialPlatform)?.placeholder}
-                    />
+                    <select
+                      id="category"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white appearance-none"
+                      disabled={categoriesLoading}
+                    >
+                      <option value="">
+                        {categoriesLoading ? 'Cargando categorías...' : 'Selecciona una categoría'}
+                      </option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name} title={cat.description}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Opcional - Comparte tu perfil para que los clientes puedan conocerte mejor
-                  </p>
-                  {socialUrl && !validateSocialUrl(socialPlatform, socialUrl) && (
-                    <p className="mt-1 text-xs text-red-500 flex items-center">
-                      <span className="mr-1">⚠️</span>
-                      La URL no parece válida para {socialPlatforms.find(p => p.id === socialPlatform)?.name}
+
+                  {categoriesError && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center">
+                      <X className="w-4 h-4 mr-1" />
+                      Error al cargar categorías: {categoriesError}
                     </p>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Location */}
-            <div className="space-y-6">
-              <div className="border-b border-gray-200 pb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <MapPin className="w-5 h-5 mr-2 text-green-600" />
-                  Ubicación
-                </h2>
               </div>
+            )}
 
-              <LocationInput
-                value={location}
-                onChange={setLocation}
-                required={true}
-              />
-            </div>
-
-            {/* Images */}
-            <div className="space-y-6">
-              <div className="border-b border-gray-200 pb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <Camera className="w-5 h-5 mr-2 text-pink-600" />
-                  Imágenes del Servicio
-                </h2>
-              </div>
-
-              {/* Drag & Drop Zone */}
-              <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all duration-200 ${
-                  isLoading || images.length >= 5
-                    ? 'bg-gray-50 border-gray-300 cursor-not-allowed'
-                    : 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-300 hover:border-purple-500 cursor-pointer hover:bg-gradient-to-br hover:from-purple-100 hover:to-blue-100'
-                }`}
-              >
-                <Upload className={`w-12 h-12 mb-4 ${
-                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-purple-500'
-                }`} />
-                <p className={`text-lg font-medium mb-2 ${
-                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-700'
-                }`}>
-                  {images.length >= 5 
-                    ? 'Límite máximo de imágenes alcanzado' 
-                    : 'Arrastra y suelta imágenes aquí'
-                  }
-                </p>
-                <p className={`text-sm ${
-                  isLoading || images.length >= 5 ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                  o haz clic para seleccionar archivos
-                </p>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  disabled={isLoading || images.length >= 5}
-                />
-                
-                {images.length < 5 && !isLoading && (
-                  <label
-                    htmlFor="images"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  >
-                    {images.length === 0 ? 'Subir Imágenes' : 'Agregar Más Imágenes'}
-                  </label>
-                )}
-                
-                <div className="flex items-center mt-4 space-x-4 text-xs text-gray-500">
-                  <span>PNG, JPG, GIF hasta 5MB</span>
-                  <span>•</span>
-                  <span className={`font-medium ${images.length === 5 ? 'text-red-500' : 'text-purple-600'}`}>
-                    {images.length}/5 imágenes
-                  </span>
+            {/* Step 4: Location and Contact */}
+            {currentStep === 4 && (
+              <div className="space-y-8 animate-fadeIn">
+                <div className="border-b border-gray-200 pb-4">
+                  <h2 className="text-2xl font-semibold text-gray-800 flex items-center">
+                    <MapPin className="w-6 h-6 mr-2 text-blue-600" />
+                    Ubicación y Contacto
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Actualiza tu ubicación e información de contacto</p>
                 </div>
-                
-                {(isLoading || isUploadingImages) && (
-                  <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-xl">
-                    <div className="flex items-center text-purple-600">
-                      <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-                      <span className="font-medium">
-                        {isUploadingImages ? 'Subiendo imágenes...' : 'Procesando...'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Image Preview Grid */}
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 shadow-md">
-                        <Image
-                          src={image.url}
-                          alt={`Preview ${index + 1}`}
-                          width={200}
-                          height={200}
-                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                {/* Location */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">Ubicación *</h3>
+                  <LocationInput
+                    value={location}
+                    onChange={setLocation}
+                    required={true}
+                  />
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">Teléfono de Contacto</h3>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Phone className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="tel"
+                      id="phone_number"
+                      value={phone_number}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                      placeholder="+57 300 123 4567"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Opcional - Los clientes podrán contactarte directamente</p>
+                </div>
+
+                {/* Social Media */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">Redes Sociales (Opcional)</h3>
+                  
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    {socialPlatforms.map((platform) => {
+                      const Icon = platform.icon;
+                      const isSelected = socialPlatform === platform.id;
+
+                      return (
+                        <button
+                          key={platform.id}
+                          type="button"
+                          onClick={() => {
+                            setSocialPlatform(platform.id as 'instagram' | 'facebook' | 'tiktok');
+                            setSocialUrl('');
+                          }}
+                          className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? `${platform.bgColor} ${platform.borderColor} shadow-lg`
+                              : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className={`p-3 rounded-full ${
+                              isSelected ? `bg-gradient-to-br ${platform.color}` : 'bg-gray-100'
+                            }`}>
+                              <Icon className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-gray-600'}`} />
+                            </div>
+                            <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
+                              {platform.name}
+                            </span>
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {socialPlatform && (
+                    <div className="animate-slideDown">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          {(() => {
+                            const Icon = socialPlatforms.find(p => p.id === socialPlatform)?.icon;
+                            return Icon ? <Icon className="h-5 w-5 text-gray-400" /> : null;
+                          })()}
+                        </div>
+                        <input
+                          type="url"
+                          id="social_url"
+                          value={socialUrl}
+                          onChange={(e) => setSocialUrl(e.target.value)}
+                          className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                          placeholder={socialPlatforms.find(p => p.id === socialPlatform)?.placeholder}
                         />
                       </div>
-                      
-                      {/* Remove button */}
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-600 shadow-lg hover:shadow-xl"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      
-                      {/* Main image indicator and setter */}
-                      <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                        {mainImageIndex === index ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg">
-                            <Star className="w-3 h-3 mr-1 fill-current" />
-                            Principal
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setAsMainImage(index)}
-                            disabled={isLoading}
-                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 shadow-md hover:shadow-lg"
-                            title="Establecer como imagen principal"
-                          >
-                            <Star className="w-3 h-3 mr-1" />
-                            Principal
-                          </button>
-                        )}
-                      </div>
-                      
-                      {/* Existing image indicator */}
-                      {image.isExisting && (
-                        <div className="absolute top-2 left-2">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 shadow-md">
-                            <ImageIcon className="w-3 h-3 mr-1" />
-                            Existente
-                          </span>
-                        </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Comparte tu perfil para que los clientes puedan conocerte mejor
+                      </p>
+                      {socialUrl && !validateSocialUrl(socialPlatform, socialUrl) && (
+                        <p className="mt-1 text-xs text-red-500 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          La URL no parece válida para {socialPlatforms.find(p => p.id === socialPlatform)?.name}
+                        </p>
                       )}
                     </div>
-                  ))}
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between items-center pt-8 border-t border-gray-200 mt-8">
+              {currentStep > 1 ? (
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  disabled={isLoading}
+                  className="flex items-center px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-5 h-5 mr-2" />
+                  Anterior
+                </button>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  className="flex items-center px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-200"
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Cancelar
+                </Link>
               )}
-            </div>
 
-            {/* Pricing and Category */}
-            <div className="space-y-6">
-              <div className="border-b border-gray-200 pb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <DollarSign className="w-5 h-5 mr-2 text-green-600" />
-                  Precios y Categoría
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio Mínimo *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-gray-500 font-medium">$</span>
-                    </div>
-                    <input
-                      type="number"
-                      id="price"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="max_price" className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio Máximo *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-gray-500 font-medium">$</span>
-                    </div>
-                    <input
-                      type="number"
-                      id="max_price"
-                      value={max_price}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoría *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Tag className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <select
-                    id="category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white appearance-none"
-                    required
-                    disabled={categoriesLoading}
-                  >
-                    <option value="">
-                      {categoriesLoading ? 'Cargando categorías...' : 'Selecciona una categoría'}
-                    </option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.name} title={cat.description}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {categoriesError && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <X className="w-4 h-4 mr-1" />
-                    Error al cargar categorías: {categoriesError}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-              <Link
-                href="/dashboard"
-                className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 font-medium"
-              >
-                Cancelar
-              </Link>
-              <button
-                type="submit"
-                disabled={isLoading || isUploadingImages}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
-              >
-                {isLoading ? (
-                  <span className="flex items-center">
-                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                    {isUploadingImages ? 'Subiendo imágenes...' : 'Guardando Cambios...'}
-                  </span>
-                ) : (
-                  'Guardar Cambios'
-                )}
-              </button>
+              {currentStep < STEPS.length ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={isLoading}
+                  className="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  Siguiente
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (!isTransitioning) {
+                      handleSubmit(e as any)
+                    }
+                  }}
+                  disabled={isLoading || isUploadingImages || isTransitioning}
+                  className="flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      {isUploadingImages ? 'Subiendo imágenes...' : 'Guardando Cambios...'}
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5 mr-2" />
+                      Guardar Cambios
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </form>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            max-height: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            max-height: 500px;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.4s ease-out;
+        }
+
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }

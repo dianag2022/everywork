@@ -1,5 +1,5 @@
 // lib/api/services.ts
-import { Service, CreateServiceData, UpdateServiceData, Category, ServiceWithProvider } from '@/types/database'
+import { Service, CreateServiceData, UpdateServiceData, Category, ServiceWithProvider, CountMyServices } from '@/types/database'
 import { Review, ReviewWithReviewer, CreateReviewData, UpdateReviewData, ReviewStats, PaginatedReviews, ReviewVote } from '@/types/review'
 import { getSupabaseToken } from './supabase/client';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://everyworkbackend.vercel.app/api'
@@ -75,7 +75,7 @@ async function apiRequest<T>(
   try {
     const response = await fetch(url, defaultOptions);
     const responseData = await response.json();
-
+    
     // Verificar si la respuesta es un error del API
     if (isErrorResponse(responseData)) {
       throw new ApiError(responseData.error.message, responseData.error.status);
@@ -237,6 +237,15 @@ export async function createService(serviceData: Omit<CreateServiceData, 'provid
     method: 'POST',
     body: JSON.stringify(serviceData),
   })
+}
+
+// Get service count for current user
+export async function getMyServicesCount(): Promise<CountMyServices> {
+  const response = await apiRequest<CountMyServices>('/services/count/', {
+    method: 'GET',
+  });
+  
+  return response;
 }
 
 // Update a service
