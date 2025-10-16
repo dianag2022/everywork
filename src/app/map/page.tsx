@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, Suspense, useCallback } from 'react'
-import { searchServices } from '@/lib/services'
+import { useState, useEffect, Suspense, useCallback, useMemo, useRef } from 'react'
+import { getServiceBySlug, searchServices } from '@/lib/services'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, MapPin, Star, Clock, Loader2, AlertCircle, List, Map, X, Filter, DollarSign, ChevronDown } from 'lucide-react'
@@ -25,11 +25,9 @@ const MapSearch = dynamic(() => import('@/components/search/MapSearch'), {
 
 // Function to calculate search radius based on zoom level
 const calculateRadiusFromZoom = (zoomLevel: number, mapBounds?: { lat: number; lng: number }[], userLocation?: { lat: number; lng: number }): number => {
-    // Strategy 1: Use map bounds to calculate radius
     if (mapBounds && mapBounds.length >= 2 && userLocation) {
-        // Calculate the distance from user location to the farthest corner of the visible map
         const distances = mapBounds.map(point => {
-            const R = 6371 // Earth's radius in km
+            const R = 6371
             const dLat = (point.lat - userLocation.lat) * Math.PI / 180
             const dLng = (point.lng - userLocation.lng) * Math.PI / 180
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -38,20 +36,17 @@ const calculateRadiusFromZoom = (zoomLevel: number, mapBounds?: { lat: number; l
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
             return R * c
         })
-        // Use the maximum distance plus a buffer (e.g., 20%)
         const maxDistance = Math.max(...distances)
-        return Math.max(10, Math.ceil(maxDistance * 1.2)) // At least 10km, with 20% buffer
+        return Math.max(10, Math.ceil(maxDistance * 1.2))
     }
 
-    // Strategy 2 (fallback): Progressive radius that doesn't shrink too much
-    // Instead of drastically reducing radius when zooming in, maintain a reasonable minimum
-    if (zoomLevel >= 15) return 25    // Street level - but keep 25km minimum
-    if (zoomLevel >= 13) return 50    // City level - 50km
-    if (zoomLevel >= 11) return 100   // Metro area - 100km
-    if (zoomLevel >= 9) return 200    // Regional - 200km
-    if (zoomLevel >= 7) return 400    // State/Province - 400km
-    if (zoomLevel >= 5) return 800    // Country - 800km
-    return 1500                       // Continental - 1500km
+    if (zoomLevel >= 15) return 25
+    if (zoomLevel >= 13) return 50
+    if (zoomLevel >= 11) return 100
+    if (zoomLevel >= 9) return 200
+    if (zoomLevel >= 7) return 400
+    if (zoomLevel >= 5) return 800
+    return 1500
 }
 
 // Compact Price Range Component for Sidebar
@@ -102,7 +97,6 @@ function PriceRangeInputs({
 
     return (
         <div className={`space-y-3 ${className}`}>
-            {/* Input Fields */}
             <div className="space-y-2">
                 <div className="space-y-1">
                     <label className="text-xs text-gray-600 font-medium">Precio mínimo</label>
@@ -133,7 +127,6 @@ function PriceRangeInputs({
                 </div>
             </div>
 
-            {/* Current Range Display */}
             {(parseInt(tempMin) > 0 || parseInt(tempMax) < 10000000) && (
                 <div className="text-center py-2 px-3 bg-green-50 rounded-lg border border-green-100">
                     <span className="text-xs font-medium text-green-700">
@@ -142,7 +135,6 @@ function PriceRangeInputs({
                 </div>
             )}
 
-            {/* Quick Preset Buttons */}
             <div className="space-y-2">
                 <p className="text-xs text-gray-500 font-medium">Rangos rápidos</p>
                 <div className="flex flex-col gap-2">
@@ -167,7 +159,6 @@ function PriceRangeInputs({
                 </div>
             </div>
 
-            {/* Clear Button */}
             <button
                 onClick={clearFilters}
                 className="w-full px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-gray-200 hover:border-red-200 font-medium"
@@ -186,13 +177,18 @@ function MapContent() {
     const categoryParam = searchParams.get('category') || ''
 
     const [services, setServices] = useState<ServiceWithProvider[]>([])
+    const [displayedServices, setDisplayedServices] = useState<ServiceWithProvider[]>([])
     const [loading, setLoading] = useState(true)
     const [category, setCategory] = useState(categoryParam)
     const [searchQuery, setSearchQuery] = useState(query)
     const [debouncedQuery, setDebouncedQuery] = useState(query)
     const [isSearching, setIsSearching] = useState(false)
+    const inputRef = useRef<HTMLInputElement>(null)
 
-    // Filter states
+    const [isTyping, setIsTyping] = useState(false)
+
+
+
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false)
     const [priceRange, setPriceRange] = useState({ min: 0, max: 10000000 })
@@ -202,12 +198,10 @@ function MapContent() {
     const [locationLoading, setLocationLoading] = useState(true)
     const [locationError, setLocationError] = useState<string | null>(null)
 
-    // Mobile-specific state
     const [showMobileList, setShowMobileList] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [mapMounted, setMapMounted] = useState(false)
 
-    // Map state
     const [currentZoom, setCurrentZoom] = useState(13)
     const [searchRadius, setSearchRadius] = useState(50)
     const [mapBounds, setMapBounds] = useState<{ lat: number; lng: number }[] | null>(null)
@@ -215,7 +209,6 @@ function MapContent() {
 
     const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
 
-    // Check for active filters
     useEffect(() => {
         setHasActiveFilters(
             category !== '' ||
@@ -224,21 +217,27 @@ function MapContent() {
         )
     }, [category, priceRange])
 
-    // Debounced search effect
     useEffect(() => {
-        if (searchQuery !== debouncedQuery) {
-            setIsSearching(true)
+        // If the searchQuery matches the URL query, don't debounce (it's from URL)
+        if (searchQuery === query) {
+            setDebouncedQuery(searchQuery)
+            setIsSearching(false)
+            setIsTyping(false)
+            return
         }
+
+        setIsSearching(true)
+        setIsTyping(true)
 
         const timer = setTimeout(() => {
             setDebouncedQuery(searchQuery)
             setIsSearching(false)
-        }, 500)
+            setIsTyping(false)
+        }, 500) // Wait 500ms after user stops typing
 
         return () => clearTimeout(timer)
-    }, [searchQuery, debouncedQuery])
+    }, [searchQuery, query]);
 
-    // Detect mobile and mount map
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 768)
@@ -257,7 +256,6 @@ function MapContent() {
         }
     }, [])
 
-    // Zoom change handler
     const handleZoomChange = useCallback((zoomLevel: number, bounds?: { lat: number; lng: number }[]) => {
         setCurrentZoom(zoomLevel)
         if (bounds) {
@@ -273,7 +271,6 @@ function MapContent() {
         }
     }, [userLocation, maxRadiusReached])
 
-    // Get user location
     useEffect(() => {
         const getCurrentLocation = () => {
             if (!navigator.geolocation) {
@@ -304,20 +301,21 @@ function MapContent() {
         getCurrentLocation()
     }, [])
 
-    // Update category from URL
     useEffect(() => {
         setCategory(categoryParam)
     }, [categoryParam])
 
-    // Update search query from URL
+    // ✅ FIXED: Only update searchQuery from URL, don't set debouncedQuery
     useEffect(() => {
         setSearchQuery(query)
-        setDebouncedQuery(query)
     }, [query])
 
-    // Fetch services with filters
-    // Fetch services with filters
+    // ✅ FIXED: Fetch services - only when debouncedQuery changes
     useEffect(() => {
+        if (locationLoading || isTyping) {
+            return
+        }
+
         async function fetchResults() {
             setLoading(true)
             try {
@@ -330,60 +328,53 @@ function MapContent() {
                     searchRadius
                 )
                 setServices(results)
-                updateURL(debouncedQuery, category)
+                setDisplayedServices(results)
+
+
+                // Only update URL after debounce completes
+                if (debouncedQuery !== query || category !== categoryParam) {
+                    updateURL(debouncedQuery, category)
+                }
             } catch (error) {
                 console.error('Error fetching search results:', error)
                 setServices([])
+                setDisplayedServices([])
             } finally {
                 setLoading(false)
             }
         }
 
-        if (!locationLoading) {
-            fetchResults()
-        }
-    }, [debouncedQuery, category, userLocation, locationLoading, searchRadius, priceRange])
+        fetchResults()
+    }, [debouncedQuery, category, userLocation, locationLoading, searchRadius, priceRange, isTyping])
 
-    // Handle search form submit
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault()
-        // The debouncing effect will handle updating debouncedQuery
-        // No need to manually set it here
-    }
-
-    // Handle category change
     const handleCategoryChange = (selectedCategory: string) => {
         setCategory(selectedCategory)
         setIsFilterOpen(false)
         updateURL(debouncedQuery, selectedCategory)
     }
 
-    // Handle price range change
     const handlePriceRangeChange = (min: number, max: number) => {
         setPriceRange({ min, max })
     }
 
-    // Clear all filters
     const clearAllFilters = () => {
         setCategory('')
         setPriceRange({ min: 0, max: 10000000 })
         router.push('/map', { scroll: false })
     }
 
-    // Update URL
     const updateURL = (query: string, cat: string) => {
         const params = new URLSearchParams()
         if (query) params.set('query', query)
         if (cat) params.set('category', cat)
-        router.push(`/map?${params.toString()}`, { scroll: false })
+
+        const newUrl = `/map${params.toString() ? `?${params.toString()}` : ''}`
+        // Use replace to avoid adding to history on every keystroke
+        router.replace(newUrl, { scroll: false })
     }
 
-    // Filter row component
-    // Filter row component
-    // Filter row component
     const FilterRow = () => (
-<div className="flex flex-col gap-3 w-full">
-{/* Category Filter */}
+        <div className="flex flex-col gap-3 w-full">
             <div className="relative">
                 <button
                     onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -433,7 +424,6 @@ function MapContent() {
                 )}
             </div>
 
-            {/* Price Filter */}
             <div className="relative">
                 <button
                     onClick={() => setIsPriceFilterOpen(!isPriceFilterOpen)}
@@ -448,23 +438,11 @@ function MapContent() {
 
                 {isPriceFilterOpen && (
                     <>
-                        {/* Backdrop to close dropdown when clicking outside */}
                         <div
                             className="fixed inset-0 z-[99]"
                             onClick={() => setIsPriceFilterOpen(false)}
                         />
-                        <div
-  className="
-    absolute top-full left-0 mt-2
-    w-[250px]
-    h-[250px] overflow-scroll
-    md:h-auto md:overflow-visible
-    bg-white rounded-xl shadow-xl border border-gray-200
-    z-[101]
-  "
->
-
-
+                        <div className="absolute top-full left-0 mt-2 w-[250px] h-[250px] overflow-scroll md:h-auto md:overflow-visible bg-white rounded-xl shadow-xl border border-gray-200 z-[101]">
                             <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
                                 <h3 className="text-sm font-semibold text-gray-800">Filtrar por precio</h3>
                             </div>
@@ -481,7 +459,6 @@ function MapContent() {
                 )}
             </div>
 
-            {/* Clear Filters Button */}
             {hasActiveFilters && (
                 <button
                     onClick={clearAllFilters}
@@ -494,7 +471,10 @@ function MapContent() {
         </div>
     )
 
-    // Mobile controls
+    const handleSearchQueryChange = useCallback((value: string) => {
+        setSearchQuery(value)
+    }, [])
+
     const MobileControls = () => (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-3 md:hidden">
             <button
@@ -512,140 +492,166 @@ function MapContent() {
         </div>
     )
 
-    // Mobile services list
-    const MobileServicesList = () => (
-        <div className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-300 md:hidden ${showMobileList ? 'translate-y-0' : 'translate-y-full'}`}
-            style={{ maxHeight: '80vh' }}>
-            <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
-            </div>
-
-            <div className="px-4 py-3 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                        Servicios encontrados
-                    </h3>
-                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                        {services.length}
-                    </span>
+    const MobileServicesList = () => {
+        const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
+        
+        // Sync local state with parent state only when drawer opens
+        useEffect(() => {
+            if (showMobileList) {
+                setLocalSearchQuery(searchQuery)
+            }
+        }, [showMobileList, searchQuery])
+        
+        // Update parent state with debounce
+        useEffect(() => {
+            const timer = setTimeout(() => {
+                if (localSearchQuery !== searchQuery) {
+                    setSearchQuery(localSearchQuery)
+                }
+            }, 500)
+            
+            return () => clearTimeout(timer)
+        }, [localSearchQuery])
+        
+        return (
+            <div className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-300 md:hidden ${showMobileList ? 'translate-y-0' : 'translate-y-full'}`}
+                style={{ maxHeight: '80vh' }}>
+                <div className="flex justify-center pt-3 pb-2">
+                    <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
                 </div>
-                <FilterRow />
-            </div>
-
-            <div className="p-4 border-b border-gray-200">
-                <form onSubmit={handleSearch} className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Buscar servicios"
-                        className="text-gray-700 placeholder-gray-400 w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
-                    {isSearching && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+    
+                <div className="px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Servicios encontrados
+                        </h3>
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            {displayedServices.length}
+                        </span>
+                    </div>
+                    <FilterRow />
+                </div>
+    
+                <div className="p-4 border-b border-gray-200">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="text"
+                            value={localSearchQuery}
+                            onChange={(e) => setLocalSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    setSearchQuery(localSearchQuery)
+                                    setDebouncedQuery(localSearchQuery)
+                                }
+                            }}
+                            placeholder="Buscar servicios"
+                            className="text-gray-700 placeholder-gray-400 w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                        {localSearchQuery !== searchQuery && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+    
+                <div className="flex-1 overflow-y-auto">
+                    {loading ? (
+                        <div className="p-4 space-y-4">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <div key={index} className="animate-pulse">
+                                    <div className="flex space-x-3">
+                                        <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                                        <div className="flex-1">
+                                            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                                            <div className="h-3 bg-gray-200 rounded w-3/4 mb-1"></div>
+                                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : displayedServices.length > 0 ? (
+                        <div className="p-4 space-y-4">
+                            {displayedServices.map((service) => (
+                                <div
+                                    key={service.id}
+                                    className="flex space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                                    onClick={() => {
+                                        setShowMobileList(false)
+                                        router.push(`/services/${generateServiceSlug(service)}`)
+                                    }}
+                                >
+                                    <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                        {service.gallery && service.gallery[0] ? (
+                                            <img
+                                                src={service.gallery[0]}
+                                                alt={service.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <MapPin className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                        )}
+                                    </div>
+    
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-gray-900 truncate">
+                                            {service.title}
+                                        </h4>
+                                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                            {service.description}
+                                        </p>
+                                        <div className="flex items-center justify-between mt-2">
+                                            <span className="text-sm font-medium text-green-600">
+                                                ${service.min_price}
+                                            </span>
+                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                {service.category}
+                                            </span>
+                                        </div>
+                                        {service.address && (
+                                            <p className="text-xs text-gray-500 mt-1 truncate">
+                                                📍 {service.city || service.address}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-4 text-center py-8">
+                            <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                            <p className="text-gray-600 mb-2">
+                                {userLocation
+                                    ? `No services found within ${searchRadius}km of your location.`
+                                    : 'No services found matching your search.'
+                                }
+                            </p>
+                            {userLocation && (
+                                <p className="text-sm text-gray-500">
+                                    Try zooming out on the map to expand your search area.
+                                </p>
+                            )}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={clearAllFilters}
+                                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm"
+                                >
+                                    Limpiar filtros
+                                </button>
+                            )}
                         </div>
                     )}
-                </form>
+                </div>
             </div>
-
-            <div className="flex-1 overflow-y-auto">
-                {loading ? (
-                    <div className="p-4 space-y-4">
-                        {Array.from({ length: 3 }).map((_, index) => (
-                            <div key={index} className="animate-pulse">
-                                <div className="flex space-x-3">
-                                    <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                                    <div className="flex-1">
-                                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                                        <div className="h-3 bg-gray-200 rounded w-3/4 mb-1"></div>
-                                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : services.length > 0 ? (
-                    <div className="p-4 space-y-4">
-                        {services.map((service) => (
-                            <div
-                                key={service.id}
-                                className="flex space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                                onClick={() => {
-                                    setShowMobileList(false)
-                                    router.push(`/services/${service.id}`)
-                                }}
-                            >
-                                <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                                    {service.gallery && service.gallery[0] ? (
-                                        <img
-                                            src={service.gallery[0]}
-                                            alt={service.title}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <MapPin className="w-6 h-6 text-gray-400" />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-gray-900 truncate">
-                                        {service.title}
-                                    </h4>
-                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                        {service.description}
-                                    </p>
-                                    <div className="flex items-center justify-between mt-2">
-                                        <span className="text-sm font-medium text-green-600">
-                                            ${service.min_price}
-                                        </span>
-                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                            {service.category}
-                                        </span>
-                                    </div>
-                                    {service.address && (
-                                        <p className="text-xs text-gray-500 mt-1 truncate">
-                                            📍 {service.city || service.address}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="p-4 text-center py-8">
-                        <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-600 mb-2">
-                            {userLocation
-                                ? `No services found within ${searchRadius}km of your location.`
-                                : 'No services found matching your search.'
-                            }
-                        </p>
-                        {userLocation && (
-                            <p className="text-sm text-gray-500">
-                                Try zooming out on the map to expand your search area.
-                            </p>
-                        )}
-                        {hasActiveFilters && (
-                            <button
-                                onClick={clearAllFilters}
-                                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm"
-                            >
-                                Limpiar filtros
-                            </button>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
-    )
+        )
+    }
 
     return (
         <div className="h-screen bg-white flex">
-            {/* Desktop Sidebar */}
             <div className="hidden md:flex w-80 bg-white border-r border-gray-200 flex-col overflow-hidden">
                 {locationLoading && (
                     <div className="p-3 bg-blue-50 border-b border-blue-200 flex items-center">
@@ -671,12 +677,18 @@ function MapContent() {
                 )}
 
                 <div className="p-4 border-b border-gray-200">
-                    <form onSubmit={handleSearch} className="relative mb-3">
+                    {/* SEARCH INPUT DESKTOP */}
+                    <div className="relative mb-3">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    setDebouncedQuery(searchQuery) // Immediate search on Enter
+                                }
+                            }}
                             placeholder="Buscar servicios"
                             className="text-gray-700 placeholder-gray-400 w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         />
@@ -685,7 +697,7 @@ function MapContent() {
                                 <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
                             </div>
                         )}
-                    </form>
+                    </div>
 
                     <FilterRow />
                 </div>
@@ -787,7 +799,6 @@ function MapContent() {
                 </div>
             </div>
 
-            {/* Map Container */}
             <div className="flex-1 relative min-h-0">
                 {isMobile && userLocation && !locationLoading && (
                     <div className="absolute top-4 left-4 right-4 z-30 bg-green-100/90 backdrop-blur-sm border border-green-200 rounded-lg p-3 flex items-center">
@@ -821,14 +832,15 @@ function MapContent() {
                 )}
             </div>
 
+            {/* <MobileControls />
+            <MobileServicesList /> */}
+
             <MobileControls />
             <MobileServicesList />
         </div>
     )
 }
 
-
-// Loading fallback component
 function MapLoading() {
     return (
         <div className="h-screen bg-white flex">
@@ -850,7 +862,6 @@ function MapLoading() {
     )
 }
 
-// Main component with Suspense boundary
 export default function MapPage() {
     return (
         <Suspense fallback={<MapLoading />}>
