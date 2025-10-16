@@ -405,7 +405,7 @@ export default function ServiceForm() {
                     id="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                    className="text-gray-700 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                     placeholder="Ej: Plomería domiciliaria, Diseño gráfico, Clases de guitarra..."
                   />
                 </div>
@@ -559,7 +559,7 @@ export default function ServiceForm() {
                         onChange={(e) => setPrice(e.target.value)}
                         min="0"
                         step="0.01"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                        className="text-gray-700 w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                         placeholder="0.00"
                       />
                     </div>
@@ -580,7 +580,7 @@ export default function ServiceForm() {
                         onChange={(e) => setMaxPrice(e.target.value)}
                         min="0"
                         step="0.01"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                        className="text-gray-700 w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                         placeholder="0.00"
                       />
                     </div>
@@ -630,7 +630,7 @@ export default function ServiceForm() {
                       id="phone_number"
                       value={phone_number}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                      className="text-gray-700 w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                       placeholder="+57 300 123 4567"
                     />
                   </div>
@@ -692,7 +692,7 @@ export default function ServiceForm() {
                           id="social_url"
                           value={socialUrl}
                           onChange={(e) => setSocialUrl(e.target.value)}
-                          className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                          className="text-gray-700 w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                           placeholder={socialPlatforms.find(p => p.id === socialPlatform)?.placeholder}
                         />
                       </div>

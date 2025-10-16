@@ -153,7 +153,7 @@ export function LocationInput({ value, onChange, required = false }: LocationInp
                   }
                 }}
                 placeholder="Ingresa la dirección del servicio"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                className="text-gray-700 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                 required={required}
               />
             </div>

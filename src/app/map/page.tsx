@@ -112,7 +112,7 @@ function PriceRangeInputs({
                             type="text"
                             value={tempMin}
                             onChange={(e) => handleMinChange(e.target.value)}
-                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+                            className="text-gray-700 placeholder-gray-400 w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
                             placeholder="0"
                         />
                     </div>
@@ -126,7 +126,7 @@ function PriceRangeInputs({
                             type="text"
                             value={tempMax}
                             onChange={(e) => handleMaxChange(e.target.value)}
-                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
+                            className="text-gray-700 placeholder-gray-400 w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
                             placeholder="Sin límite"
                         />
                     </div>
@@ -347,10 +347,8 @@ function MapContent() {
     // Handle search form submit
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
-        if (searchQuery.trim()) {
-            setDebouncedQuery(searchQuery)
-            setIsSearching(false)
-        }
+        // The debouncing effect will handle updating debouncedQuery
+        // No need to manually set it here
     }
 
     // Handle category change
@@ -542,7 +540,7 @@ function MapContent() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar servicios"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        className="text-gray-700 placeholder-gray-400 w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     />
                     {isSearching && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -680,7 +678,7 @@ function MapContent() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Buscar servicios"
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            className="text-gray-700 placeholder-gray-400 w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         />
                         {isSearching && (
                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
