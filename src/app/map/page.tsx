@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic'
 import { ServiceWithProvider } from '@/types/database';
 import { useCategories } from '@/hooks/useCategories'
 import { generateServiceSlug } from '@/lib/slugify'
+import PriceRangeInputs from '@/components/search/PriceRange'
 
 // Dynamically import MapSearch with no SSR to prevent window errors
 const MapSearch = dynamic(() => import('@/components/search/MapSearch'), {
@@ -49,125 +50,7 @@ const calculateRadiusFromZoom = (zoomLevel: number, mapBounds?: { lat: number; l
     return 1500
 }
 
-// Compact Price Range Component for Sidebar
-function PriceRangeInputs({
-    minPrice,
-    maxPrice,
-    onRangeChange,
-    className = ""
-}: {
-    minPrice: number
-    maxPrice: number
-    onRangeChange: (min: number, max: number) => void
-    className?: string
-}) {
-    const [tempMin, setTempMin] = useState(minPrice.toString())
-    const [tempMax, setTempMax] = useState(maxPrice.toString())
 
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(price)
-    }
-
-    const handleMinChange = (value: string) => {
-        const numericValue = value.replace(/[^\d]/g, '')
-        setTempMin(numericValue)
-        const minNum = parseInt(numericValue) || 0
-        const maxNum = parseInt(tempMax) || 10000000
-        onRangeChange(minNum, maxNum)
-    }
-
-    const handleMaxChange = (value: string) => {
-        const numericValue = value.replace(/[^\d]/g, '')
-        setTempMax(numericValue)
-        const minNum = parseInt(tempMin) || 0
-        const maxNum = parseInt(numericValue) || 10000000
-        onRangeChange(minNum, maxNum)
-    }
-
-    const clearFilters = () => {
-        setTempMin('0')
-        setTempMax('10000000')
-        onRangeChange(0, 10000000)
-    }
-
-    return (
-        <div className={`space-y-3 ${className}`}>
-            <div className="space-y-2">
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 font-medium">Precio mínimo</label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
-                        <input
-                            type="text"
-                            value={tempMin}
-                            onChange={(e) => handleMinChange(e.target.value)}
-                            className="text-gray-700 placeholder-gray-400 w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
-                            placeholder="0"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 font-medium">Precio máximo</label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
-                        <input
-                            type="text"
-                            value={tempMax}
-                            onChange={(e) => handleMaxChange(e.target.value)}
-                            className="text-gray-700 placeholder-gray-400 w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white"
-                            placeholder="Sin límite"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {(parseInt(tempMin) > 0 || parseInt(tempMax) < 10000000) && (
-                <div className="text-center py-2 px-3 bg-green-50 rounded-lg border border-green-100">
-                    <span className="text-xs font-medium text-green-700">
-                        {formatPrice(parseInt(tempMin) || 0)} a {formatPrice(parseInt(tempMax) || 10000000)}
-                    </span>
-                </div>
-            )}
-
-            <div className="space-y-2">
-                <p className="text-xs text-gray-500 font-medium">Rangos rápidos</p>
-                <div className="flex flex-col gap-2">
-                    {[
-                        { label: "Hasta $50k", min: 0, max: 50000 },
-                        { label: "$50k - $200k", min: 50000, max: 200000 },
-                        { label: "$200k - $500k", min: 200000, max: 500000 },
-                        { label: "Más de $500k", min: 500000, max: 10000000 }
-                    ].map((preset) => (
-                        <button
-                            key={preset.label}
-                            onClick={() => {
-                                setTempMin(preset.min.toString())
-                                setTempMax(preset.max.toString())
-                                onRangeChange(preset.min, preset.max)
-                            }}
-                            className="w-full px-3 py-2 text-sm bg-gray-50 hover:bg-green-50 text-gray-700 hover:text-green-700 rounded-lg transition-all duration-200 border border-gray-200 hover:border-green-300 text-left font-medium"
-                        >
-                            {preset.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <button
-                onClick={clearFilters}
-                className="w-full px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-gray-200 hover:border-red-200 font-medium"
-            >
-                Limpiar filtro de precio
-            </button>
-        </div>
-    )
-}
 
 // MapContent component
 function MapContent() {
@@ -494,14 +377,14 @@ function MapContent() {
 
     const MobileServicesList = () => {
         const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
-        
+
         // Sync local state with parent state only when drawer opens
         useEffect(() => {
             if (showMobileList) {
                 setLocalSearchQuery(searchQuery)
             }
         }, [showMobileList, searchQuery])
-        
+
         // Update parent state with debounce
         useEffect(() => {
             const timer = setTimeout(() => {
@@ -509,17 +392,17 @@ function MapContent() {
                     setSearchQuery(localSearchQuery)
                 }
             }, 500)
-            
+
             return () => clearTimeout(timer)
         }, [localSearchQuery])
-        
+
         return (
             <div className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-300 md:hidden ${showMobileList ? 'translate-y-0' : 'translate-y-full'}`}
                 style={{ maxHeight: '80vh' }}>
                 <div className="flex justify-center pt-3 pb-2">
                     <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
                 </div>
-    
+
                 <div className="px-4 py-3 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -531,7 +414,7 @@ function MapContent() {
                     </div>
                     <FilterRow />
                 </div>
-    
+
                 <div className="p-4 border-b border-gray-200">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -555,7 +438,7 @@ function MapContent() {
                         )}
                     </div>
                 </div>
-    
+
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         <div className="p-4 space-y-4">
@@ -596,7 +479,7 @@ function MapContent() {
                                             </div>
                                         )}
                                     </div>
-    
+
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-medium text-gray-900 truncate">
                                             {service.title}
