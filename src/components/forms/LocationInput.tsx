@@ -242,7 +242,7 @@ async function reverseGeocode(lat: number, lng: number) {
   
   return {
     address: data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-    city: data.address?.city || data.address?.town || data.address?.village,
+    city: `${data.address?.neighbourhood} ${data.address?.county}`,
     state: data.address?.state,
     country: data.address?.country,
     postal_code: data.address?.postcode
@@ -271,7 +271,7 @@ async function geocodeAddress(address: string): Promise<ServiceLocation> {
     latitude: parseFloat(result.lat),
     longitude: parseFloat(result.lon),
     address: result.display_name,
-    city: result.address?.city || result.address?.town || result.address?.village,
+    city: `${data.address?.neighbourhood} ${data.address?.county}`,
     state: result.address?.state,
     country: result.address?.country,
     postal_code: result.address?.postcode

@@ -83,7 +83,7 @@ export default function LocationMapPicker({ value, onChange, className = '' }: L
       
       return {
         address: data.display_name || `${lat}, ${lng}`,
-        city: data.address?.city || data.address?.town || data.address?.village || undefined,
+        city: `${data.address?.neighbourhood} ${data.address?.county}`,
         state: data.address?.state || undefined,
         country: data.address?.country || 'Colombia',
         postal_code: data.address?.postcode || undefined

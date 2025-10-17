@@ -350,6 +350,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
 
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
+    console.log("location", location);
     
     // Only allow submission on the final step
     if (currentStep < STEPS.length) {

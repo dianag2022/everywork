@@ -12,6 +12,8 @@ import { createReview, getServiceReviews, updateReview, deleteReview } from '@/l
 import type { PaginatedReviews, ReviewWithReviewer } from '@/types/review'
 import { toast } from 'react-hot-toast' // Or your preferred toast library
 import { SocialMediaLink } from '../ui/SocialMediaLink'
+import ShareButton from '@/components/services/ShareButton'
+import { generateServiceSlug } from '@/lib/slugify'
 
 
 
@@ -409,7 +411,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             const response = await getServiceReviews(serviceId, page, limit, sort)
             const data = response;
             const reviewsArray = Array.isArray(data) ? data : data.data
-            
+
             setReviews(data);
 
             if (append && page > 1) {
@@ -635,7 +637,7 @@ function ReviewsDisplay({ serviceId, reviewsKey }: { serviceId: string, reviewsK
             )}
 
             {/* Reviews Stats */}
-            
+
             {reviews?.stats && reviews.stats.average_rating !== undefined && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
                     <div className="text-center md:text-left">
@@ -947,37 +949,40 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-gray-50 py-8 px-4">
+            <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Main Content Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
                     {/* Left Column (3/5) */}
-                    <div className="lg:col-span-3 space-y-8">
+                    <div className="lg:col-span-3 space-y-6">
                         {/* Service Title Header */}
-                        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
-                            <div className="flex flex-col gap-6">
-                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                                    <div className="flex-1">
-                                        <h1 className="text-xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">{service.title}</h1>
-                                    </div>
-
-                                    {/* Price display */}
-                                    {(service.min_price || service.max_price) && (
-                                        <div className="lg:text-right bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200">
-                                            <div className="text-sm text-green-600 font-semibold mb-2">Precio desde</div>
-                                            <div className="text-4xl font-bold text-green-700">
-                                                ${service.min_price?.toLocaleString('es-CO') || '0'}
-                                                {service.max_price && service.max_price !== service.min_price && (
-                                                    <span className="text-xl text-green-500 ml-2">
-                                                        - ${service.max_price.toLocaleString('es-CO')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                                <div className="flex-1">
+                                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+                                        {service.title}
+                                    </h1>
+                                    <ShareButton />
                                 </div>
+
+                                {/* Price display */}
+                                {(service.min_price || service.max_price) && (
+                                    <div className="lg:text-right bg-blue-50 p-5 rounded-xl border border-blue-100">
+                                        <div className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wide">
+                                            Precio desde
+                                        </div>
+                                        <div className="text-3xl font-bold text-blue-700">
+                                            ${service.min_price?.toLocaleString('es-CO') || '0'}
+                                            {service.max_price && service.max_price !== service.min_price && (
+                                                <span className="text-lg text-blue-500 ml-2">
+                                                    - ${service.max_price.toLocaleString('es-CO')}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -989,23 +994,23 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                         />
 
                         {/* Service Description */}
-                        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
-                            <div className="flex items-center mb-6">
-                                <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full mr-4"></div>
-                                <h2 className="text-3xl font-bold text-gray-900">Descripción del servicio</h2>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                            <div className="flex items-center mb-5">
+                                <div className="w-1 h-7 bg-blue-600 rounded-full mr-3"></div>
+                                <h2 className="text-2xl font-bold text-gray-900">Descripción del servicio</h2>
                             </div>
 
                             <div className="prose max-w-none">
                                 {service.description ? (
-                                    <div className="text-gray-700 leading-relaxed text-lg whitespace-pre-wrap">
+                                    <div className="text-gray-700 leading-relaxed text-base whitespace-pre-wrap">
                                         {service.description}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
-                                        <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <MessageCircle className="w-8 h-8 text-gray-400" />
                                         </div>
-                                        <p className="text-gray-500 text-lg">No hay descripción disponible</p>
+                                        <p className="text-gray-500 text-base">No hay descripción disponible</p>
                                         <p className="text-gray-400 text-sm mt-2">El proveedor no ha agregado una descripción para este servicio</p>
                                     </div>
                                 )}
@@ -1013,7 +1018,7 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                         </div>
 
                         {/* Location Map */}
-                        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
                             <ServiceMap service={service} />
                         </div>
                     </div>
@@ -1021,26 +1026,26 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                     {/* Right Column (2/5) */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Contact Information */}
-                        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 sticky top-8">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8 sticky top-8">
                             <div className="flex items-center mb-6">
-                                <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full mr-3"></div>
+                                <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
                                 <h3 className="text-xl font-bold text-gray-900">Contactar proveedor</h3>
                             </div>
 
                             {/* Contact Methods */}
-                            <div className="space-y-4 mb-8">
+                            <div className="space-y-3 mb-6">
                                 {service.phone_number && (
                                     <div className="group">
                                         <a
                                             href={`tel:${service.phone_number}`}
-                                            className="flex items-center p-4 rounded-2xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                                            className="flex items-center p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
                                         >
-                                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 group-hover:bg-blue-200 transition-colors">
-                                                <Phone className="w-6 h-6 text-blue-600" />
+                                            <div className="w-11 h-11 bg-blue-50 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 transition-colors">
+                                                <Phone className="w-5 h-5 text-blue-600" />
                                             </div>
                                             <div>
-                                                <div className="text-sm text-gray-500 font-medium">Teléfono</div>
-                                                <div className="font-semibold text-gray-900">{service.phone_number}</div>
+                                                <div className="text-xs text-gray-500 font-medium">Teléfono</div>
+                                                <div className="font-semibold text-gray-900 text-sm">{service.phone_number}</div>
                                             </div>
                                         </a>
                                     </div>
@@ -1050,7 +1055,6 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                                 <WhatsAppButton phoneNumber={service.phone_number} serviceName={service.title} />
 
                                 {/* Social Media Links */}
-                                {/* Social Media Links - Multiple platforms */}
                                 {service.social_media && service.social_media.length > 0 && (
                                     <>
                                         {service.social_media.map((social, index) => (
@@ -1066,29 +1070,29 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
 
                             {/* Service Details */}
                             <div className="border-t border-gray-200 pt-6">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Información adicional</h4>
+                                <h4 className="text-base font-semibold text-gray-900 mb-4">Información adicional</h4>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {/* Category */}
                                     {service.category && (
-                                        <div className="flex items-center bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold border border-blue-200">
-                                            <Tag className="w-4 h-4 mr-2" />
+                                        <div className="flex items-center bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200">
+                                            <Tag className="w-4 h-4 mr-2 text-gray-500" />
                                             {service.category}
                                         </div>
                                     )}
 
                                     {/* Location */}
                                     {(service.city || service.state) && (
-                                        <div className="flex items-center bg-gradient-to-r from-green-50 to-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold border border-green-200">
-                                            <MapPin className="w-4 h-4 mr-2" />
+                                        <div className="flex items-center bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200">
+                                            <MapPin className="w-4 h-4 mr-2 text-gray-500" />
                                             {service.city && service.state ? [service.city, service.state].filter(Boolean).join(', ') : `${service.address?.split(',')[1]} - ${service.address?.split(',')[3]}`}
                                         </div>
                                     )}
 
                                     {/* Publication Date */}
                                     {service.created_at && (
-                                        <div className="flex items-center bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold border border-purple-200">
-                                            <Calendar className="w-4 h-4 mr-2" />
+                                        <div className="flex items-center bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200">
+                                            <Calendar className="w-4 h-4 mr-2 text-gray-500" />
                                             {new Date(service.created_at).toLocaleDateString('es-CO', {
                                                 day: 'numeric',
                                                 month: 'short',
@@ -1103,25 +1107,24 @@ export default function ServiceDetailClient({ service }: { service: ServiceWithP
                 </div>
 
                 {/* Reviews Section */}
-                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-8">
-                    <div className="flex items-center justify-between mb-6 sm:mb-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                    <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center">
-                            <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-yellow-500 to-orange-600 rounded-full mr-3 sm:mr-4"></div>
-                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                            <div className="w-1 h-7 bg-blue-600 rounded-full mr-3"></div>
+                            <h2 className="text-2xl font-bold text-gray-900">
                                 Reseñas y calificaciones
                             </h2>
                         </div>
                     </div>
 
                     {/* Review Form */}
-                    <div className="mb-6 sm:mb-8">
+                    <div className="mb-6">
                         <ReviewForm serviceId={service.id} onReviewSubmitted={handleReviewSubmitted} />
                     </div>
 
                     {/* Reviews Display */}
                     <ReviewsDisplay serviceId={service.id} reviewsKey={reviewsKey} />
                 </div>
-
 
             </div>
         </div>
